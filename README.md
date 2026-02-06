@@ -1,21 +1,31 @@
-# SDFWA Digital Services — MVP bootstrap
+# shadcn/ui monorepo template
 
-This repository contains minimal Next.js app scaffolds to validate cross-subdomain authentication for local development.
+This template is for creating a monorepo with shadcn/ui.
 
-Quick notes:
+## Usage
 
-- Dev credential: `admin` / `admin` — use at `apps/auth` sign-in page.
-- The dev sign-in stores a simple session object in `localStorage` under `sdfwa_user`.
-- Consumer apps (`www`, `shop`, `classes`, `diw`, `shopop`) read `sdfwa_user` from `localStorage` and render user info and roles.
-- `shopop` contains a simple gate that requires the `volunteer` role.
+```bash
+pnpm dlx shadcn@latest init
+```
 
-Local testing (suggested):
+## Adding components
 
-1. Serve each app using your Next.js dev server or a simple static server for testing pages. Each app is a minimal Next.js App Router structure under `apps/*`.
-2. Open the `apps/auth` sign-in page (e.g. http://localhost:3000/auth/signin if you run the auth app locally) and sign in with `admin/admin`.
-3. After signing in, open the consumer app (for example, http://localhost:3001/) and the Hello World page will read the dev session from `localStorage`.
+To add components to your app, run the following command at the root of your `web` app:
 
-Notes about cross-subdomain cookies and production:
+```bash
+pnpm dlx shadcn@latest add button -c apps/web
+```
 
-- This MVP uses `localStorage` for simplicity in local development. Production must use secure root-domain cookies (e.g. `domain=.sdfwa.org`, `secure`, `sameSite=None`, `httpOnly`) and the `apps/auth` deployment should manage session cookies.
-- See `.github/THE_PLAN.md` for the main plan and environment variable expectations.
+This will place the ui components in the `packages/ui/src/components` directory.
+
+## Tailwind
+
+Your `tailwind.config.ts` and `globals.css` are already set up to use the components from the `ui` package.
+
+## Using components
+
+To use the components in your app, import them from the `ui` package.
+
+```tsx
+import { Button } from "@workspace/ui/components/button"
+```
