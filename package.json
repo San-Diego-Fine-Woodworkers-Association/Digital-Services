@@ -1,0 +1,41 @@
+{
+	"name": "digital-services",
+	"type": "module",
+	"private": true,
+	"packageManager": "bun@1.0.0",
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"scripts": {
+		"dev": "turbo dev",
+		"build": "turbo build",
+		"lint": "turbo lint",
+		"test": "turbo test"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.39.2",
+		"@types/node": "^25.2.0",
+		"@types/pg": "^8.16.0",
+		"@types/react": "^19.2.13",
+		"@types/react-dom": "^19.2.3",
+		"@typescript-eslint/eslint-plugin": "^8.54.0",
+		"@typescript-eslint/parser": "^8.54.0",
+		"autoprefixer": "^10.4.20",
+		"eslint": "^9.39.2",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-import": "^2.32.0",
+		"prettier": "^3.8.1",
+		"turbo": "latest",
+		"@tailwindcss/postcss": "^4.1.18",
+		"typescript": "latest"
+	},
+	"dependencies": {
+		"better-auth": "^1.4.18",
+		"drizzle-orm": "^0.45.1",
+		"next": "^16.1.6",
+		"pg": "^8.18.0",
+		"react": "^19.2.4",
+		"react-dom": "^19.2.4"
+	}
+}

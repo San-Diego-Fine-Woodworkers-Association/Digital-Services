@@ -1,0 +1,11 @@
+{
+  "extends": "@sdfwa/typescript-config/react-library.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["dist", "build", "node_modules"],
+}

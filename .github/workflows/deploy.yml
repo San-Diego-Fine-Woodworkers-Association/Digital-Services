@@ -1,0 +1,21 @@
+name: Deploy to Dokploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Call Dokploy webhook
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$DOKPLOY_WEBHOOK_URL" ]; then
+            echo "DOKPLOY_WEBHOOK_URL secret is not set"; exit 1
+          fi
+          curl -s -X POST "$DOKPLOY_WEBHOOK_URL" -H "Content-Type: application/json" -d '{"branch":"'"${GITHUB_REF#refs/heads/}"'","commit":"'"${GITHUB_SHA}"'"}'
