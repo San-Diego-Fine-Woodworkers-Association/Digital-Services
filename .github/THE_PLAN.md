@@ -7,23 +7,23 @@
 
 ### Domains & Apps
 
-* **Auth (IdP):** `auth.sdfwa.org` (Login UI, API, DB Migrations, Stripe Webhooks).
-* **Home:** `www.sdfwa.org`
-* **Shop Use:** `shop.sdfwa.org`
-* **Education:** `classes.sdfwa.org`
-* **Design in Wood:** `diw.sdfwa.org`
-* **Shop Ops:** `shopop.sdfwa.org` (Strict Volunteer access).
+- **Auth (IdP):** `auth.sdfwa.org` (Login UI, API, DB Migrations, Stripe Webhooks).
+- **Home:** `www.sdfwa.org`
+- **Shop Use:** `shop.sdfwa.org`
+- **Education:** `classes.sdfwa.org`
+- **Design in Wood:** `diw.sdfwa.org`
+- **Shop Ops:** `shopop.sdfwa.org` (Strict Volunteer access).
 
 ### Tech Stack
 
-* **Framework:** Next.js 15 (App Router).
-* **Monorepo:** Turborepo.
-* **Database:** Postgres (Neon/Supabase/AWS RDS).
-* **ORM:** Drizzle ORM.
-* **Authentication:** Better Auth.
-* **Language:** TypeScript.
-* **CI/CD:** GitHub Actions
-* **Hosting:** Dokploy on Hetzner
+- **Framework:** Next.js 15 (App Router).
+- **Monorepo:** Turborepo.
+- **Database:** Postgres (Neon/Supabase/AWS RDS).
+- **ORM:** Drizzle ORM.
+- **Authentication:** Better Auth.
+- **Language:** TypeScript.
+- **CI/CD:** GitHub Actions
+- **Hosting:** Dokploy on Hetzner
 
 ---
 
@@ -54,7 +54,7 @@
 
 ## 3. Database Schema (`packages/db`)
 
-We will use a unified schema. The `User` table holds the roles, but the `Account` table allows us to determine *how* they logged in.
+We will use a unified schema. The `User` table holds the roles, but the `Account` table allows us to determine _how_ they logged in.
 
 **Required Tables (Postgres/Drizzle):**
 
@@ -69,7 +69,7 @@ export const user = pgTable("user", {
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
   // ROLES: Stored permanently here
-  roles: text("roles").array().default(["member"]), 
+  roles: text("roles").array().default(["member"]),
   // MEMBER ID: Specific to SDFWA
   memberId: text("member_id"),
 });
@@ -82,21 +82,24 @@ export const session = pgTable("session", {
   updatedAt: timestamp("updated_at").notNull(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
-  userId: text("user_id").notNull().references(() => user.id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
   // CRITICAL: We need to know WHICH account created this session
-  activeAccountId: text("active_account_id"), 
+  activeAccountId: text("active_account_id"),
 });
 
 export const account = pgTable("account", {
   id: text("id").primaryKey(),
   externalId: text("external_id").notNull(), // e.g. Google Sub ID
   accountType: text("account_type").notNull(), // "google" or "credential"
-  userId: text("user_id").notNull().references(() => user.id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
   // ... other standard OIDC fields
 });
-
 ```
 
 ---
@@ -109,10 +112,9 @@ This package exports the `betterAuth` server instance and client hooks.
 
 1. **Root Domain Cookies:** Must be set to `.sdfwa.org` to share sessions across apps.
 2. **Session Hook (The Access Logic):**
-* If Provider is `credential` (Personal Email) -> **Grant Member Role ONLY**.
-* If Provider is `google` (Volunteer Workspace) -> **Grant Volunteer AND Member Roles**.
 
-
+- If Provider is `credential` (Personal Email) -> **Grant Member Role ONLY**.
+- If Provider is `google` (Volunteer Workspace) -> **Grant Volunteer AND Member Roles**.
 
 ### Implementation Spec (Server Config):
 
@@ -121,7 +123,7 @@ This package exports the `betterAuth` server instance and client hooks.
 
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "@repo/db"; 
+import { db } from "@repo/db";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -176,39 +178,33 @@ export const auth = betterAuth({
 
 ### A. The Auth App (`apps/auth`)
 
-* **Responsibility:** The only app that processes `signIn`, `signUp`, and `linkAccount`.
-* **API Routes:** Host the `api/auth/[...all]` route here.
-* **Webhooks:** Create `api/webhooks/stripe` to listen for membership payments.
-* *Action:* When Stripe confirms payment -> Update `user.roles` in DB (add 'member').
-* *Action:* When Stripe confirms failure -> Update `user.roles` in DB (remove 'member').
-
-
+- **Responsibility:** The only app that processes `signIn`, `signUp`, and `linkAccount`.
+- **API Routes:** Host the `api/auth/[...all]` route here.
+- **Webhooks:** Create `api/webhooks/stripe` to listen for membership payments.
+- _Action:_ When Stripe confirms payment -> Update `user.roles` in DB (add 'member').
+- _Action:_ When Stripe confirms failure -> Update `user.roles` in DB (remove 'member').
 
 ### B. The Operations App (`apps/shopop`)
 
-* **Middleware:** Strict Gating.
+- **Middleware:** Strict Gating.
+
 ```typescript
 // apps/shopop/middleware.ts
 // If session.user.roles DOES NOT include "volunteer" -> Redirect to /unauthorized
-
 ```
-
-
 
 ### C. The Consumer Apps (`apps/www`, `apps/classes`, `apps/shop`)
 
-* **Middleware:** Soft Gating. Check if user exists. If not, redirect to `auth.sdfwa.org/signin`.
-* **UI Logic:**
-* Use `auth.api.getSession()` to check roles.
-* If `roles.includes('volunteer')`, show "Edit Class" or "Machine Maintenance" buttons.
-
-
+- **Middleware:** Soft Gating. Check if user exists. If not, redirect to `auth.sdfwa.org/signin`.
+- **UI Logic:**
+- Use `auth.api.getSession()` to check roles.
+- If `roles.includes('volunteer')`, show "Edit Class" or "Machine Maintenance" buttons.
 
 ---
 
 ## 6. The "Account Linking" Flow
 
-*Since Member Email (Personal) != Volunteer Email (Google Workspace)*
+_Since Member Email (Personal) != Volunteer Email (Google Workspace)_
 
 1. **Initial State:** User exists with Personal Email (Member Role).
 2. **User Action:** User logs into Member Portal (`www.sdfwa.org/profile`).
@@ -226,7 +222,7 @@ export const auth = betterAuth({
 3. Deploy `apps/auth` first to establish the cookie domain.
 4. Set environment variable `BETTER_AUTH_URL=https://auth.sdfwa.org` in all apps.
 5. Set environment variable `BETTER_AUTH_COOKIE_DOMAIN=.sdfwa.org`.
- 
+
 ---
 
 ## 8. MVP
@@ -242,6 +238,7 @@ Goals for the minimum-viable product (MVP) to validate cross-subdomain auth and 
    - This login path is strictly for local/dev testing and must be protected/removed in production deployments.
 
 Notes:
+
 - Keep each app intentionally minimal for the MVP — focus on the cross-domain cookie behavior, session shape, and role rendering.
 - `apps/shopop` should implement the strict middleware gate but the MVP middleware can simply redirect non-volunteers to `/unauthorized`.
 
@@ -275,6 +272,7 @@ Overview: the database connection variables are provided externally. The lists b
   - `BETTER_AUTH_COOKIE_DOMAIN` and `BETTER_AUTH_URL` are referenced by `packages/auth-client` but are supplied by the host app's environment.
 
 Local development notes:
+
 - Browsers require HTTPS for cookies across domains. For local development, document an approach (for example: use `mkcert` + host entries to map local domains like `auth.local.sdfwa.test`, `www.local.sdfwa.test`, and set `BETTER_AUTH_COOKIE_DOMAIN=.local.sdfwa.test`).
 - Provide an override for cookie domain and `COOKIE_SECURE=false` in local `.env` files so the MVP credential login (`admin/admin`) can work in development.
 

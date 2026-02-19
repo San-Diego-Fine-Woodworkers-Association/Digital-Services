@@ -2,20 +2,68 @@ name: Deploy to Dokploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  deploy:
+  identify-and-deploy:
     runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.set-apps.outputs.apps }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Call Dokploy webhook
-        env:
-          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
-          GITHUB_REF: ${{ github.ref }}
-          GITHUB_SHA: ${{ github.sha }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Necessary for Turbo to compare commits
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install Dependencies
+        run: bun install
+
+      - id: set-apps
+        name: Identify Changed Apps
+        # This filters apps that changed relative to the previous commit
         run: |
-          if [ -z "$DOKPLOY_WEBHOOK_URL" ]; then
-            echo "DOKPLOY_WEBHOOK_URL secret is not set"; exit 1
-          fi
-          curl -s -X POST "$DOKPLOY_WEBHOOK_URL" -H "Content-Type: application/json" -d '{"branch":"'"${GITHUB_REF#refs/heads/}"'","commit":"'"${GITHUB_SHA}"'"}'
+          APPS=$(bun x turbo build --filter=[HEAD^1] --dry-run=json | jq -c '.packages | map(select(.path | startswith("apps/"))) | map(.name)')
+          echo "apps=$APPS" >> $GITHUB_OUTPUT
+
+  build-and-push:
+    needs: identify-and-deploy
+    if: ${{ needs.identify-and-deploy.outputs.apps != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app_name: ${{ fromJson(needs.identify-and-deploy.outputs.apps) }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.app_name }}:latest
+          build-args: |
+            APP_NAME=${{ matrix.app_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trigger Dokploy Webhook
+        # Dokploy provides a specific redeploy URL for each service
+        run: |
+          CLEAN_NAME=$(echo "${{ matrix.app_name }}" | tr '-' '_')
+          URL_SECRET_NAME="DOKPLOY_WEBHOOK_$CLEAN_NAME"
+          curl -X POST "${{ secrets[env.URL_SECRET_NAME] }}"
