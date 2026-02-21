@@ -34,6 +34,9 @@ jobs:
     needs: identify-and-deploy
     if: ${{ needs.identify-and-deploy.outputs.apps != '[]' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         app_name: ${{ fromJson(needs.identify-and-deploy.outputs.apps) }}
