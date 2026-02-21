@@ -1,11 +1,11 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from 'next/image'
 
-import "@workspace/ui/globals.css";
+import "@sdfwa/ui/globals.css";
 import { Providers } from "@/components/providers";
-import { AppLayout } from "@workspace/ui/components/layouts/app-layout";
-import { NavButton } from "@workspace/ui/components/nav-button";
-import { Logo } from "@workspace/ui/components/logo";
+import { AppLayout } from "@sdfwa/ui/components/layouts/app-layout";
+import { NavButton } from "@sdfwa/ui/components/nav-button";
+import { Logo } from "@sdfwa/ui/components/logo";
 
 const fontSans = Geist({
   subsets: ["latin"],

@@ -1,6 +1,6 @@
 import React, { ReactNode } from "react";
-import { Button, type ButtonProps } from "@workspace/ui/components/button";
-import { cn } from "@workspace/ui/lib/utils";
+import { Button, type ButtonProps } from "@sdfwa/ui/components/button";
+import { cn } from "@sdfwa/ui/lib/utils";
 
 export interface NavButtonProps extends Omit<ButtonProps, "variant" | "size"> {
   /**

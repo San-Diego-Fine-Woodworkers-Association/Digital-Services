@@ -2,9 +2,9 @@
 
 import * as React from "react";
 
-import { Calendars } from "@workspace/ui/components/calendars";
-import { DatePicker } from "@workspace/ui/components/date-picker";
-import { NavUser } from "@workspace/ui/components/nav-user";
+import { Calendars } from "@sdfwa/ui/components/calendars";
+import { DatePicker } from "@sdfwa/ui/components/date-picker";
+import { NavUser } from "@sdfwa/ui/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
   SidebarSeparator,
-} from "@workspace/ui/components/sidebar";
+} from "@sdfwa/ui/components/sidebar";
 import { PlusIcon } from "lucide-react";
 
 // This is sample data.

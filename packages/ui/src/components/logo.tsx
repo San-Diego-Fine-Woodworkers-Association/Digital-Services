@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { cn } from "@workspace/ui/lib/utils";
+import { cn } from "@sdfwa/ui/lib/utils";
 
 interface LogoProps {
   /**

@@ -1,14 +1,14 @@
-import { cn } from "@workspace/ui/lib/utils";
-import { Button } from "@workspace/ui/components/button";
-import { Card, CardContent } from "@workspace/ui/components/card";
+import { cn } from "@sdfwa/ui/lib/utils";
+import { Button } from "@sdfwa/ui/components/button";
+import { Card, CardContent } from "@sdfwa/ui/components/card";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-} from "@workspace/ui/components/field";
-import { Input } from "@workspace/ui/components/input";
+} from "@sdfwa/ui/components/field";
+import { Input } from "@sdfwa/ui/components/input";
 
 export function LoginForm({
   className,

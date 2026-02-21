@@ -1,0 +1,53 @@
+FROM node:24-alpine AS base
+ARG PORT=3000
+RUN apk update
+RUN apk add --no-cache libc6-compat
+# Install bun
+RUN npm install -g bun
+# Set the working directory
+WORKDIR /app
+
+# ---
+FROM base AS prepare
+ARG APP_NAME="diw"
+COPY . .
+# Install turbo
+RUN bun add turbo@^2 -g
+# Add lockfile and package.json's of isolated subworkspace
+# Generate a partial monorepo with a pruned lockfile for a target workspace.
+RUN bun x turbo prune $APP_NAME --docker
+
+
+# ---
+FROM base AS builder
+# First install the dependencies (as they change less often)
+COPY --from=prepare /app/out/json/ .
+RUN bun install --frozen-lockfile
+# Build the project
+COPY --from=prepare /app/out/full/ .
+RUN bun turbo build
+
+
+# ---
+FROM base AS runner
+# Re-declare ARG so we can use it to set an ENV
+ARG APP_NAME="diw"
+ENV APP_NAME_ENV=$APP_NAME
+ENV APP_PATH="apps/${APP_NAME_ENV}"
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 app
+USER app
+
+# Copy the standalone build
+COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/.next/standalone ./
+# Copy static files into the mirrored structure inside standalone
+COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/.next/static ./${APP_PATH}/.next/static
+COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/public ./${APP_PATH}/public
+
+EXPOSE $PORT
+ENV PORT $PORT
+
+ENV HOSTNAME "0.0.0.0"
+# Use the ENV variable in the command
+CMD node apps/${APP_NAME_ENV}/server.js

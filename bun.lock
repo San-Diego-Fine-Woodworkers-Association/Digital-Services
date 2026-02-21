@@ -5,41 +5,19 @@
     "": {
       "name": "sdfwa-digital-services",
       "devDependencies": {
+        "@sdfwa/eslint-config": "workspace:*",
+        "@sdfwa/typescript-config": "workspace:*",
         "@types/react": "^19.2.13",
-        "@workspace/eslint-config": "workspace:*",
-        "@workspace/typescript-config": "workspace:*",
         "prettier": "^3.8.1",
         "turbo": "^2.8.1",
         "typescript": "5.9.3",
-      },
-    },
-    "apps/auth": {
-      "name": "auth",
-      "version": "0.0.1",
-      "dependencies": {
-        "@workspace/ui": "workspace:*",
-        "lucide-react": "^0.563.0",
-        "next": "16.1.6",
-        "next-themes": "^0.4.6",
-        "react": "^19.2.4",
-        "react-dom": "^19.2.4",
-      },
-      "devDependencies": {
-        "@tailwindcss/postcss": "^4.1.18",
-        "@types/node": "^25.1.0",
-        "@types/react": "^19.2.10",
-        "@types/react-dom": "^19.2.3",
-        "@workspace/eslint-config": "workspace:^",
-        "@workspace/typescript-config": "workspace:*",
-        "eslint": "^9.39.2",
-        "typescript": "^5.9.3",
       },
     },
     "apps/diw": {
       "name": "diw",
       "version": "0.0.1",
       "dependencies": {
-        "@workspace/ui": "workspace:*",
+        "@sdfwa/ui": "workspace:*",
         "better-auth": "^1.4.18",
         "dotenv": "^17.2.4",
         "drizzle-orm": "^0.45.1",
@@ -51,13 +29,13 @@
         "react-dom": "^19.2.4",
       },
       "devDependencies": {
+        "@sdfwa/eslint-config": "workspace:^",
+        "@sdfwa/typescript-config": "workspace:*",
         "@tailwindcss/postcss": "^4.1.18",
         "@types/node": "^25.1.0",
         "@types/pg": "^8.16.0",
         "@types/react": "^19.2.10",
         "@types/react-dom": "^19.2.3",
-        "@workspace/eslint-config": "workspace:^",
-        "@workspace/typescript-config": "workspace:*",
         "drizzle-kit": "^0.31.9",
         "eslint": "^9.39.2",
         "tsx": "^4.21.0",
@@ -65,7 +43,7 @@
       },
     },
     "packages/eslint-config": {
-      "name": "@workspace/eslint-config",
+      "name": "@sdfwa/eslint-config",
       "version": "0.0.0",
       "devDependencies": {
         "@eslint/js": "^9.39.2",
@@ -84,11 +62,11 @@
       },
     },
     "packages/typescript-config": {
-      "name": "@workspace/typescript-config",
+      "name": "@sdfwa/typescript-config",
       "version": "0.0.0",
     },
     "packages/ui": {
-      "name": "@workspace/ui",
+      "name": "@sdfwa/ui",
       "version": "0.0.0",
       "dependencies": {
         "class-variance-authority": "^0.7.1",
@@ -105,13 +83,13 @@
         "zod": "^3.25.76",
       },
       "devDependencies": {
+        "@sdfwa/eslint-config": "workspace:*",
+        "@sdfwa/typescript-config": "workspace:*",
         "@tailwindcss/postcss": "^4.1.18",
         "@turbo/gen": "^2.8.1",
         "@types/node": "^25.1.0",
         "@types/react": "^19.2.13",
         "@types/react-dom": "^19.2.3",
-        "@workspace/eslint-config": "workspace:*",
-        "@workspace/typescript-config": "workspace:*",
         "eslint": "^9.39.2",
         "tailwindcss": "^4.1.18",
         "typescript": "^5.9.3",
@@ -473,6 +451,12 @@
 
     "@radix-ui/rect": ["@radix-ui/rect@1.1.1", "", {}, "sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw=="],
 
+    "@sdfwa/eslint-config": ["@sdfwa/eslint-config@workspace:packages/eslint-config"],
+
+    "@sdfwa/typescript-config": ["@sdfwa/typescript-config@workspace:packages/typescript-config"],
+
+    "@sdfwa/ui": ["@sdfwa/ui@workspace:packages/ui"],
+
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
     "@swc/helpers": ["@swc/helpers@0.5.15", "", { "dependencies": { "tslib": "^2.8.0" } }, "sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g=="],
@@ -563,12 +547,6 @@
 
     "@typescript-eslint/visitor-keys": ["@typescript-eslint/visitor-keys@8.54.0", "", { "dependencies": { "@typescript-eslint/types": "8.54.0", "eslint-visitor-keys": "^4.2.1" } }, "sha512-VFlhGSl4opC0bprJiItPQ1RfUhGDIBokcPwaFH4yiBCaNPeld/9VeXbiPO1cLyorQi1G1vL+ecBk1x8o1axORA=="],
 
-    "@workspace/eslint-config": ["@workspace/eslint-config@workspace:packages/eslint-config"],
-
-    "@workspace/typescript-config": ["@workspace/typescript-config@workspace:packages/typescript-config"],
-
-    "@workspace/ui": ["@workspace/ui@workspace:packages/ui"],
-
     "acorn": ["acorn@8.15.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg=="],
 
     "acorn-jsx": ["acorn-jsx@5.3.2", "", { "peerDependencies": { "acorn": "^6.0.0 || ^7.0.0 || ^8.0.0" } }, "sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ=="],
@@ -612,8 +590,6 @@
     "ast-types": ["ast-types@0.13.4", "", { "dependencies": { "tslib": "^2.0.1" } }, "sha512-x1FCFnFifvYDDzTaLII71vG5uvDwgtmDTEVWAxrgeiR8VjMONcCXJx7E+USjDtHlwFmt9MysbqgF9b9Vjr6w+w=="],
 
     "async-function": ["async-function@1.0.0", "", {}, "sha512-hsU18Ae8CDTR6Kgu9DYf0EbCr/a5iGL0rytQDobUcdpYOKokk8LEjVphnXkDkgpi0wYVsqrXuP0bZxJaTqdgoA=="],
-
-    "auth": ["auth@workspace:apps/auth"],
 
     "available-typed-arrays": ["available-typed-arrays@1.0.7", "", { "dependencies": { "possible-typed-array-names": "^1.0.0" } }, "sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ=="],
 

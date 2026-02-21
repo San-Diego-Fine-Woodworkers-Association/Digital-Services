@@ -6,7 +6,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@workspace/ui/components/collapsible";
+} from "@sdfwa/ui/components/collapsible";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
-} from "@workspace/ui/components/sidebar";
+} from "@sdfwa/ui/components/sidebar";
 import { ChevronRightIcon, CheckIcon } from "lucide-react";
 
 export function Calendars({
