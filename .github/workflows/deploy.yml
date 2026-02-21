@@ -57,7 +57,7 @@ jobs:
           context: .
           file: Dockerfile.apps
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.app_name }}:latest
+          tags: ghcr.io/sdfwa-digital-services/${{ matrix.app_name }}:latest
           build-args: |
             APP_NAME=${{ matrix.app_name }}
           cache-from: type=gha
