@@ -26,8 +26,8 @@
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
-    "@sdfwa/eslint-config": "workspace:*",
-    "@sdfwa/typescript-config": "workspace:*",
+    "@sdfwa/eslint-config": "sdfwa:*",
+    "@sdfwa/typescript-config": "sdfwa:*",
     "eslint": "^9.39.2",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3"
