@@ -55,13 +55,19 @@ jobs:
           username: San-Diego-Fine-Woodworkers-Association
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lowercase Owner Name
+        run: |
+          echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+        env:
+          OWNER: '${{ github.repository_owner }}'
+
       - name: Build and Push
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile.apps
           push: true
-          tags: ghcr.io/sdfwa-digital-services/${{ matrix.app_name }}:latest
+          tags: ghcr.io/${{ env.OWNER_LC }}/${{ matrix.app_name }}:latest
           build-args: |
             APP_NAME=${{ matrix.app_name }}
           cache-from: type=gha
