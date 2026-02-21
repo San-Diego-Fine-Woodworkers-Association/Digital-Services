@@ -52,7 +52,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: San-Diego-Fine-Woodworkers-Association
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push
