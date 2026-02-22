@@ -1,11 +1,16 @@
+"use client";
+
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from 'next/image'
+import Link from "next/link";
 
 import "@sdfwa/ui/globals.css";
 import { Providers } from "@/components/providers";
 import { AppLayout } from "@sdfwa/ui/components/layouts/app-layout";
 import { NavButton } from "@sdfwa/ui/components/nav-button";
 import { Logo } from "@sdfwa/ui/components/logo";
+
+import { AccountButton } from "@/components/account-button";
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -32,12 +37,32 @@ export default function RootLayout({
             logo={<Logo><Image src="/images/full-logo.png" alt="SDFWA Logo" width={1090} height={746} /></Logo>}
             navigation={
               <>
-                <NavButton>Home</NavButton>
-                <NavButton>Features</NavButton>
-                <NavButton>Docs</NavButton>
+                <NavButton asChild><Link href="/fair-registration">Register</Link></NavButton>
+                <NavButton asChild><Link href="/fair-registration/my-registrations">My Registrations</Link></NavButton>
+                <NavButton asChild><Link href="/fair-registration/profile">Profile</Link></NavButton>
+                <NavButton asChild><Link href="/fair-registration/admin">Admin</Link></NavButton>
               </>
             }
-            // actions={}
+            actions={
+              <>
+                <AccountButton
+                  firstName="John"
+                  lastName="Doe"
+                  dropdownGroups={[
+                    {
+                      items: [
+                        { label: "Profile", onClick: () => alert("Go to profile") },
+                      ],
+                    },
+                    {
+                      items: [
+                        { label: "Sign Out", onClick: () => alert("Signing out...") },
+                      ],
+                    },
+                  ]}
+                />
+              </>
+            }
           >
             {children}
           </AppLayout>

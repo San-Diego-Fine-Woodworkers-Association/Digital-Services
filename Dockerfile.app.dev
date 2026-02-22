@@ -1,0 +1,26 @@
+FROM node:24-alpine as base
+
+RUN apk add --no-cache libc6-compat
+RUN apk update
+
+WORKDIR /app
+
+EXPOSE 3000
+
+RUN npm install -g bun
+RUN bun add turbo@^2 -g
+
+COPY . .
+RUN bun i --frozen-lockfile
+
+ARG APP_NAME
+ENV APP_NAME=$APP_NAME
+
+RUN echo $APP_NAME
+
+CMD if [ -z "$APP_NAME" ]; then \
+		echo "No app name specified. Starting whole project."; \
+		bun run dev; \
+	else \
+		bun run dev --filter="$APP_NAME"; \
+	fi

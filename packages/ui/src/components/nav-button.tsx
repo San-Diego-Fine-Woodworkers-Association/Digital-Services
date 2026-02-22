@@ -14,11 +14,6 @@ export interface NavButtonProps extends Omit<ButtonProps, "variant" | "size"> {
   isActive?: boolean;
 
   /**
-   * Optional icon to display before the text
-   */
-  icon?: ReactNode;
-
-  /**
    * Optional className for additional styling
    */
   className?: string;
@@ -39,14 +34,13 @@ export interface NavButtonProps extends Omit<ButtonProps, "variant" | "size"> {
  * <nav>
  *   <NavButton isActive href="/">Home</NavButton>
  *   <NavButton href="/about">About</NavButton>
- *   <NavButton icon={<ChevronDown />}>More</NavButton>
+ *   <NavButton>More</NavButton>
  * </nav>
  * ```
  */
 export function NavButton({
   children,
   isActive = false,
-  icon,
   className,
   ...props
 }: NavButtonProps) {
@@ -64,7 +58,6 @@ export function NavButton({
       )}
       {...props}
     >
-      {icon && <span className="mr-1.5">{icon}</span>}
       {children}
     </Button>
   );

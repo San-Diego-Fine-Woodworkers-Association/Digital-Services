@@ -61,21 +61,48 @@ jobs:
         env:
           OWNER: '${{ github.repository_owner }}'
 
+      - name: Get Application Version
+        id: get_version
+        run: |
+          VERSION=$(jq -r '.version' apps/${{ matrix.app_name }}/package.json)
+          echo "VERSION=$VERSION" >>${GITHUB_ENV}
+
+      - name: Create Docker Image Metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ env.OWNER_LC }}/${{ matrix.app_name }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+            type=raw,value=${{ env.VERSION }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.app_name }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
       - name: Build and Push
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile.apps
+          file: Dockerfile.app.prod
           push: true
-          tags: ghcr.io/${{ env.OWNER_LC }}/${{ matrix.app_name }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             APP_NAME=${{ matrix.app_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # - name: Trigger Dokploy Webhook
-      #   # Dokploy provides a specific redeploy URL for each service
-      #   run: |
-      #     CLEAN_NAME=$(echo "${{ matrix.app_name }}" | tr '-' '_')
-      #     URL_SECRET_NAME="DOKPLOY_WEBHOOK_$CLEAN_NAME"
-      #     curl -X POST "${{ secrets[env.URL_SECRET_NAME] }}"
+      - name: Get Application ID Secret Name
+        run: |
+          CLEAN_NAME=$(echo "${{ matrix.app_name }}" | tr '-' '_' | tr '[:lower:]' '[:upper:]')
+          APPLICATION_ID="DOKPLOY_APPLICATION_ID_$CLEAN_NAME"
+          echo "APPLICATION_ID=$APPLICATION_ID" >>${GITHUB_ENV}
+
+      - name: Deploy to Dokplo
+        uses: benbristow/dokploy-deploy-action@0.2.2
+        with:
+          api_token: ${{ secrets.DOKPLOY_AUTH_TOKEN }}
+          application_id: ${{ secrets[env.APPLICATION_ID] }}
+          dokploy_url: ${{ secrets.DOKPLOY_URL }}
+          service_type: application

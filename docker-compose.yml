@@ -14,14 +14,15 @@ services:
     ports:
       - 8080:8080
 
-  app_diw:
+  dev:
     build:
       context: .
-      dockerfile: Dockerfile.apps
-      args:
-        APP_NAME: "diw"
+      dockerfile: Dockerfile.app.dev
     restart: always
     ports:
       - 3000:3000
+    depends_on:
+      - db
+      - adminer
     environment:
       DATABASE_URL: postgres://admin:admin@db:5432/postgres
