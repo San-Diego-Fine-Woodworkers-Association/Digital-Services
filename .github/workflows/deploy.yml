@@ -100,10 +100,13 @@ jobs:
           APPLICATION_ID="DOKPLOY_APPLICATION_ID_$CLEAN_NAME"
           echo "APPLICATION_ID=$APPLICATION_ID" >>${GITHUB_ENV}
 
-      - name: Deploy to Dokplo
-        uses: benbristow/dokploy-deploy-action@0.2.2
-        with:
-          api_token: ${{ secrets.DOKPLOY_AUTH_TOKEN }}
-          application_id: ${{ secrets[env.APPLICATION_ID] }}
-          dokploy_url: ${{ secrets.DOKPLOY_URL }}
-          service_type: application
+      - name: Deploy to Dokploy
+        run: |
+          curl -X 'POST' \
+          '${{ secrets.DOKPLOY_URL }}/api/application.deploy' \
+          -H 'accept: application/json' \
+          -H 'x-api-key: ${{ secrets.DOKPLOY_API_KEY }}' \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "applicationId": "${{ secrets[env.APPLICATION_ID] }}"
+          }'
