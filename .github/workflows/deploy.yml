@@ -25,8 +25,7 @@ jobs:
         name: Identify Changed Apps
         # This filters apps that changed relative to the previous commit
         run: |
-          # APPS=$(bun x turbo build --filter='[HEAD^1]' --dry-run=json | jq -c '.packages | map(select(test("^//$|^@") | not))')
-          APPS=$(bun x turbo build --filter=diw --dry-run=json | jq -c '.packages | map(select(test("^//$|^@") | not))')
+          APPS=$(bun x turbo build --filter='[HEAD^1]' --dry-run=json | jq -c '.packages | map(select(test("^//$|^@") | not))')
           echo "Identified apps to deploy: $APPS"
           echo "apps=$APPS" >> $GITHUB_OUTPUT
 
