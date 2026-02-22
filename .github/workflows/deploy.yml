@@ -102,7 +102,7 @@ jobs:
 
       - name: Deploy to Dokploy
         run: |
-          curl -L -X 'POST' \
+          curl --fail-with-body -L -X 'POST' \
             '${{ secrets.DOKPLOY_HOST }}/api/application.deploy' \
             -H 'accept: application/json' \
             -H 'x-api-key: ${{ secrets.DOKPLOY_AUTH_TOKEN }}' \
