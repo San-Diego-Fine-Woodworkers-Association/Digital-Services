@@ -105,7 +105,7 @@ jobs:
           curl -L -X 'POST' \
             '${{ secrets.DOKPLOY_HOST }}/api/application.deploy' \
             -H 'accept: application/json' \
-            -H 'x-api-key: ${{ secrets.DOKPLOY_API_KEY }}' \
+            -H 'x-api-key: ${{ secrets.DOKPLOY_AUTH_TOKEN }}' \
             -H 'Content-Type: application/json' \
             -d '{
               "applicationId": "${{ secrets[env.APPLICATION_ID] }}"
