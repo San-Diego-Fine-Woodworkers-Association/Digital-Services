@@ -68,6 +68,7 @@ jobs:
           echo "VERSION=$VERSION" >>${GITHUB_ENV}
 
       - name: Create Docker Image Metadata
+        id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ env.OWNER_LC }}/${{ matrix.app_name }}
