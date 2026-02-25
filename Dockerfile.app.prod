@@ -17,7 +17,6 @@ RUN bun add turbo@^2 -g
 # Generate a partial monorepo with a pruned lockfile for a target workspace.
 RUN bun x turbo prune $APP_NAME --docker
 
-
 # ---
 FROM base AS builder
 # First install the dependencies (as they change less often)
@@ -26,7 +25,6 @@ RUN bun install --frozen-lockfile
 # Build the project
 COPY --from=prepare /app/out/full/ .
 RUN bun turbo build
-
 
 # ---
 FROM base AS runner
@@ -49,5 +47,4 @@ EXPOSE $PORT
 ENV PORT $PORT
 
 ENV HOSTNAME "0.0.0.0"
-# Use the ENV variable in the command
-CMD bun db:migrate --filter=$APP_NAME_ENV && node apps/${APP_NAME_ENV}/server.js
+CMD node apps/${APP_NAME_ENV}/server.js

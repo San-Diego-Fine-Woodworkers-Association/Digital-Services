@@ -1,7 +1,7 @@
 import { betterAuth, BetterAuthOptions } from "better-auth";
 import { customSession } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import { db } from "@/lib/db";
 import { membershipTable, adminUsersTable } from "@/lib/db/schema";
