@@ -20,4 +20,4 @@
 **/docker-compose*
 **/Dockerfile*
 **/node_modules
-**/npm-d
+**/npm-debug*

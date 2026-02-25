@@ -28,6 +28,14 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "db:migrate": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "db:generate": {
+      "dependsOn": [],
+      "cache": false
     }
   }
 }

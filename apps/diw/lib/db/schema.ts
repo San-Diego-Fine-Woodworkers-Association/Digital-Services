@@ -1,16 +1,17 @@
 import { relations } from "drizzle-orm";
-import { date, integer, jsonb, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { date, integer, pgTable, text, uuid } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
 
 // START TEMP USER TABLES
-export const additionalRolesTable = pgTable("member_roles", {
-	memberId: uuid().primaryKey().defaultRandom().unique(),
-	role: text("role").notNull(),
-});
-
 export const adminUsersTable = pgTable("admin_users", {
 	memberId: uuid().primaryKey().defaultRandom().unique()
+});
+
+export const membershipTable = pgTable("membership", {
+	memberId: text().primaryKey().notNull().unique(),
+	email: text().notNull(),
+	membership: text().notNull()
 });
 // END TEMP USER TABLES
 
@@ -24,7 +25,6 @@ export const shiftsTable = pgTable("shifts", {
 	id: uuid().primaryKey().defaultRandom().unique(),
 	fairId: integer().notNull(),
 	name: text().notNull(),
-	dates: jsonb().notNull().$type<Date[]>(),
 	startTime: date().notNull(),
 	endTime: date().notNull(),
 	numberOfVolunteers: integer().notNull()
@@ -45,10 +45,18 @@ export const registrationsTable = pgTable("registrations", {
 	memberId: text().notNull()
 });
 
-export const timeSlotRelations = relations(timeSlotsTable, ({ one }) => ({
+export const timeSlotRelations = relations(timeSlotsTable, ({ one, many }) => ({
 	shift: one(shiftsTable, {
 		fields: [timeSlotsTable.shiftId],
 		references: [shiftsTable.id]
+	}),
+	registrations: many(registrationsTable)
+}));
+
+export const registrationRelations = relations(registrationsTable, ({ one }) => ({
+	timeSlot: one(timeSlotsTable, {
+		fields: [registrationsTable.timeSlotId],
+		references: [timeSlotsTable.id]
 	})
 }));
 

@@ -5,6 +5,8 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "db:migrate": "turbo run db:migrate",
+    "db:generate": "turbo run db:generate",
     "start:dev": "node scripts/dev.js",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""

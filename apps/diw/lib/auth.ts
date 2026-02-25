@@ -1,47 +1,59 @@
-import { betterAuth } from "better-auth";
-import { admin } from "better-auth/plugins";
+import { betterAuth, BetterAuthOptions } from "better-auth";
+import { customSession } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { and, eq } from 'drizzle-orm';
 
 import { db } from "@/lib/db";
-import { user } from "@/lib/db/auth-schema";
-import { additionalRolesTable, adminUsersTable } from "@/lib/db/schema";
-import { eq } from 'drizzle-orm';
+import { membershipTable, adminUsersTable } from "@/lib/db/schema";
+import { memberLoginPlugin } from "./auth/member-login-plugin";
 
-export const auth = betterAuth({
+const options = {
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
   baseURL: process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
-  plugins: [admin()],
-  databaseHooks: {
-    user: {
-      create: {
-        after: async ({ id: userId }) => {
-          const [
-            potentialAdmin,
-            potentialRoles
-          ] = await Promise.all([
-            db.select()
-            .from(adminUsersTable)
-            .where(eq(adminUsersTable.memberId, userId))
-            .limit(1)
-            .then(results => results.length > 0 ? 'admin' : null),
-            db.select()
-            .from(additionalRolesTable)
-            .where(eq(additionalRolesTable.memberId, userId))
-            .limit(1)
-            .then(results => results.length > 0 ? results[0]?.role : null)
-          ])
-
-          const roles = [potentialAdmin, potentialRoles].filter(Boolean);
-
-          if (roles.length > 0) {
-            await db.update(user).set({
-              role: roles.join(',')
-            }).where(eq(user.id, userId));
-          }
-        },
+  user: {
+    additionalFields: {
+      memberId: {
+        type: "string"
       },
+      address: {
+        type: "string"
+      }
     },
   },
+  plugins: [memberLoginPlugin()]
+} satisfies BetterAuthOptions
+
+
+const customSessionPlugin = customSession(async({ user, session }) => {
+  const [
+    potentialAdmin,
+    { membership } = {}
+  ] = await Promise.all([
+    db.query.adminUsersTable.findFirst({
+      where: eq(adminUsersTable.memberId, user.memberId)
+    }),
+    db.query.membershipTable.findFirst({
+      where: eq(membershipTable.memberId, user.memberId)
+    })
+  ])
+
+  const roles = [];
+  if (potentialAdmin) roles.push("admin");
+  if (membership) roles.push(membership);
+
+  return {
+    roles,
+    user,
+    session
+  };
+}, options)
+
+export const auth = betterAuth({
+  ...options,
+  plugins: [
+    ...(options.plugins || []),
+    customSessionPlugin
+  ]
 });

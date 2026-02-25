@@ -50,4 +50,4 @@ ENV PORT $PORT
 
 ENV HOSTNAME "0.0.0.0"
 # Use the ENV variable in the command
-CMD node apps/${APP_NAME_ENV}/server.js
+CMD bun db:migrate --filter=$APP_NAME_ENV && node apps/${APP_NAME_ENV}/server.js

@@ -1,22 +1,24 @@
 FROM node:24-alpine as base
-
 RUN apk add --no-cache libc6-compat
 RUN apk update
 
+RUN npm install -g bun
+
 WORKDIR /app
 
-EXPOSE 3000
-
-RUN npm install -g bun
-RUN bun add turbo@^2 -g
-
+FROM base as prepare
+RUN corepack enable
 COPY . .
-RUN bun i --frozen-lockfile
+RUN bun install --frozen-lockfile
 
+FROM prepare as dev
 ARG APP_NAME
 ENV APP_NAME=$APP_NAME
 
 RUN echo $APP_NAME
+
+RUN echo "Migrating database..."
+RUN bun run db:migrate
 
 CMD if [ -z "$APP_NAME" ]; then \
 		echo "No app name specified. Starting whole project."; \

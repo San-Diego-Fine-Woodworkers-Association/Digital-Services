@@ -14,15 +14,27 @@ services:
     ports:
       - 8080:8080
 
-  dev:
-    build:
-      context: .
-      dockerfile: Dockerfile.app.dev
-    restart: always
-    ports:
-      - 3000:3000
-    depends_on:
-      - db
-      - adminer
-    environment:
-      DATABASE_URL: postgres://admin:admin@db:5432/postgres
+  # monorepo:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.app.dev
+  #   ports:
+  #     - 3000:3000
+  #   depends_on:
+  #     - db
+  #     - adminer
+  #   environment:
+  #     DATABASE_CONNECTION_STRING: postgres://admin:admin@db:5432/diw
+  #   volumes:
+  #     - .:/app
+      
+  #     # IMPORTANT: Anonymous volumes for node_modules
+  #     # This prevents your host machine's node_modules (and native binaries) 
+  #     # from overriding the container's node_modules. 
+  #     - /app/node_modules
+
+  #     - /app/apps/diw/node_modules
+      
+  #     - /app/packages/ui/node_modules
+  #     - /app/packages/eslint-config/node_modules
+  #     - /app/packages/typescript-config/node_modules

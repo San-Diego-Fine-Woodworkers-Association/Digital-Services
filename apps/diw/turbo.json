@@ -6,7 +6,7 @@
 		"build": {
 			"env": [
 				"$TURBO_EXTENDS$",
-				"DATABASE_URL",
+				"DATABASE_CONNECTION_STRING",
 				"BETTER_AUTH_SECRET",
 				"BETTER_AUTH_URL"
 			]
