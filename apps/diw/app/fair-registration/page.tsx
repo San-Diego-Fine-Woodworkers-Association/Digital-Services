@@ -1,27 +1,26 @@
-import { SideBar } from "@/components/fair-registration-sidebar"
+"use client";
 
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@sdfwa/ui/components/sidebar"
+import { Calendar } from "lucide-react";
 
 export default function Page() {
   return (
-    <SidebarProvider>
-      <SideBar />
-      <SidebarInset>
-        <header className="bg-background sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-5">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div key={i} className="bg-muted/50 aspect-square rounded-xl" />
-            ))}
-          </div>
+    <div className="h-full flex">
+      {/* Filters and Calendar */}
+      <div className="h-full shrink-0 border-r border-border bg-card p-4">
+        <Calendar className="bg-transparent [--cell-size:2.1rem]" />
+      </div>
+
+      {/* Main Content */}
+      <div className="h-full overflow-y-auto">
+        {/* Placeholder items */}
+        <div className="p-4">
+          <div className="mb-4 rounded-lg bg-muted p-4">Item 1</div>
+          <div className="mb-4 rounded-lg bg-muted p-4">Item 2</div>
+          <div className="mb-4 rounded-lg bg-muted p-4">Item 3</div>
+          <div className="mb-4 rounded-lg bg-muted p-4">Item 4</div>
+          <div className="mb-4 rounded-lg bg-muted p-4">Item 5</div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+    </div>
   )
 }

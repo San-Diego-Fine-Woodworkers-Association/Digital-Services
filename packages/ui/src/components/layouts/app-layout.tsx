@@ -80,7 +80,7 @@ export function AppLayout({
       <header
         className={cn(
           "border-b border-border bg-background",
-          "sticky top-0 z-40",
+          "w-full",
           "flex items-center justify-between",
           "px-4 py-3 sm:px-6 md:px-8",
           "h-16 gap-4",

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { date, integer, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { date, integer, pgTable, text, time, uuid } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
 
@@ -15,27 +15,17 @@ export const membershipTable = pgTable("membership", {
 });
 // END TEMP USER TABLES
 
-export const fairDetailsTable = pgTable("fair_details", {
-  id: uuid().primaryKey().defaultRandom().unique(),
-	startDate: date().notNull(),
-	endDate: date().notNull()
-});
-
 export const shiftsTable = pgTable("shifts", {
 	id: uuid().primaryKey().defaultRandom().unique(),
-	fairId: integer().notNull(),
-	name: text().notNull(),
-	startTime: date().notNull(),
-	endTime: date().notNull(),
-	numberOfVolunteers: integer().notNull()
+	name: text().notNull()
 });
 
 export const timeSlotsTable = pgTable("time_slots", {
 	id: uuid().primaryKey().defaultRandom().unique(),
 	shiftId: uuid().notNull().references(() => shiftsTable.id),
-	date: date().notNull(),
-	startTime: date().notNull(),
-	endTime: date().notNull(),
+	date: date({ mode: "date" }).notNull(),
+	startTime: time({ withTimezone: false }).notNull(),
+	endTime: time({ withTimezone: false }).notNull(),
 	numberOfVolunteers: integer().notNull()
 });
 
