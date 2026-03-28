@@ -12,6 +12,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/react": "^19.2.13",
     "@sdfwa/eslint-config": "workspace:*",
     "@sdfwa/typescript-config": "workspace:*",
