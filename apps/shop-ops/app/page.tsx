@@ -14,11 +14,6 @@ export default async function Page() {
 	return (
 		<main className="mx-auto max-w-3xl p-8">
 			<h1 className="text-2xl font-semibold tracking-tight">Shop Ops — Reporters</h1>
-			<p className="mt-2 text-muted-foreground text-sm">
-				Rows from the <code className="rounded bg-muted px-1 py-0.5">reporter</code>{" "}
-				table (seed with <code className="rounded bg-muted px-1 py-0.5">bun run db:seed</code>
-				).
-			</p>
 			<ul className="mt-6 space-y-3">
 				{reporters.length === 0 ? (
 					<li className="text-muted-foreground text-sm">No reporters yet.</li>

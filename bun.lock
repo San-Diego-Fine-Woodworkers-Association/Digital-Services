@@ -51,6 +51,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@sdfwa/ui": "workspace:*",
+        "@tailwindcss/postcss": "^4.1.18",
         "dotenv": "^17.2.4",
         "drizzle-orm": "^0.45.1",
         "drizzle-seed": "^0.3.1",
@@ -62,7 +63,6 @@
       "devDependencies": {
         "@sdfwa/eslint-config": "workspace:*",
         "@sdfwa/typescript-config": "workspace:*",
-        "@tailwindcss/postcss": "^4.1.18",
         "@types/node": "^25.1.0",
         "@types/pg": "^8.16.0",
         "@types/react": "^19.2.10",
@@ -1249,8 +1249,6 @@
     "shebang-command": ["shebang-command@2.0.0", "", { "dependencies": { "shebang-regex": "^3.0.0" } }, "sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA=="],
 
     "shebang-regex": ["shebang-regex@3.0.0", "", {}, "sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A=="],
-
-    "shop-ops": ["shop-ops@workspace:apps/shop-ops"],
 
     "shop-ops": ["shop-ops@workspace:apps/shop-ops"],
 
