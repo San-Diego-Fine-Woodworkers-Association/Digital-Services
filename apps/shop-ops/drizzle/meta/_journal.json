@@ -8,6 +8,20 @@
       "when": 1774655068968,
       "tag": "0000_dusty_maverick",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1775478660000,
+      "tag": "0001_reporter_report_id_pk",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775478720000,
+      "tag": "0002_reporter_member_id_drop_default",
+      "breakpoints": true
     }
   ]
 }

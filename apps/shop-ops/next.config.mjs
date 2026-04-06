@@ -13,13 +13,6 @@ const tailwindPostcssEntry = require.resolve("@tailwindcss/postcss");
 const nextConfig = {
 	transpilePackages: ["@sdfwa/ui"],
 	output: "standalone",
-	serverExternalPackages: [
-		"@tailwindcss/postcss",
-		"@tailwindcss/node",
-		"@tailwindcss/oxide",
-		"tailwindcss",
-		"lightningcss",
-	],
 	turbopack: {
 		root: path.resolve(__dirname, "../.."),
 		resolveAlias: {
