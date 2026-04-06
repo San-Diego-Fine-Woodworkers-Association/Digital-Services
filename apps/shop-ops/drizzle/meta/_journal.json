@@ -22,6 +22,20 @@
       "when": 1775478720000,
       "tag": "0002_reporter_member_id_drop_default",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1775516473500,
+      "tag": "0003_wonderful_arachne",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775516620960,
+      "tag": "0004_first_agent_brand",
+      "breakpoints": true
     }
   ]
 }
