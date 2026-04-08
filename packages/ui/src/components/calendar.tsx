@@ -16,6 +16,13 @@ import {
   ChevronDownIcon,
 } from "lucide-react";
 
+function toISODateString(date: Date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function Calendar({
   className,
   classNames,
@@ -25,14 +32,38 @@ function Calendar({
   locale,
   formatters,
   components,
+  modifiers,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
   const defaultClassNames = getDefaultClassNames();
 
+  const computedModifiers = React.useMemo(() => {
+    if (props.mode !== "multiple") return modifiers;
+    const selectedDates = (props.selected as Date[] | undefined) ?? [];
+    const selectedSet = new Set(selectedDates.map(toISODateString));
+    const rangeStart: Date[] = [];
+    const rangeEnd: Date[] = [];
+    const rangeMiddle: Date[] = [];
+
+    for (const date of selectedDates) {
+      const prev = new Date(date); prev.setDate(prev.getDate() - 1);
+      const next = new Date(date); next.setDate(next.getDate() + 1);
+      const hasPrev = selectedSet.has(toISODateString(prev));
+      const hasNext = selectedSet.has(toISODateString(next));
+
+      if (hasPrev && hasNext) rangeMiddle.push(date);
+      else if (!hasPrev && hasNext) rangeStart.push(date);
+      else if (hasPrev && !hasNext) rangeEnd.push(date);
+    }
+
+    return { ...modifiers, range_start: rangeStart, range_end: rangeEnd, range_middle: rangeMiddle };
+  }, [props.mode, props.selected, modifiers]);
+
   return (
     <DayPicker
+      modifiers={computedModifiers}
       showOutsideDays={showOutsideDays}
       className={cn(
         "p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(7)] bg-background group/calendar in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",

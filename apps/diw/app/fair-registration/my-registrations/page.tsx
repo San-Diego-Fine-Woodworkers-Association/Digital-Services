@@ -1,8 +1,18 @@
-export default function Page() {
-	return (
-		<div className="h-full w-full flex flex-col items-center justify-center">
-			<h1 className="text-2xl font-bold mb-4">My Registrations</h1>
-			<p className="text-muted-foreground">You have no registrations yet.</p>
-		</div>
-	);
+export const dynamic = "force-dynamic";
+
+import { redirect } from "next/navigation";
+import { getServerSession } from "@/lib/auth/get-session";
+import { getMyRegistrations } from "@/lib/actions/registration";
+import { MyRegistrationsClient } from "./my-registrations-client";
+
+export default async function Page() {
+	const session = await getServerSession();
+
+	if (!session?.user) {
+		redirect("/fair-registration/login?redirect=/fair-registration/my-registrations");
+	}
+
+	const registrations = await getMyRegistrations();
+
+	return <MyRegistrationsClient registrations={registrations} />;
 }

@@ -1,42 +1,24 @@
-import { SideBar } from "@/components/admin/sidebar"
+export const dynamic = "force-dynamic";
 
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@sdfwa/ui/components/sidebar"
+import { redirect } from "next/navigation";
+import { getServerSession } from "@/lib/auth/get-session";
 
-import { CalendarCog, ClipboardCheck, Settings } from "lucide-react";
+export default async function AdminLayout({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
+	const session = await getServerSession();
 
-const nav = [{
-  label: "Shifts and Slots",
-  icon: CalendarCog,
-  href: "/fair-registration/admin/shifts-and-slots",
-}, {
-  label: "Registrations",
-  icon: ClipboardCheck,
-  href: "/fair-registration/admin/registrations",
-}];
+	if (!session?.user) {
+		redirect("/fair-registration/login?redirect=/fair-registration/admin");
+	}
 
-const footerNav = [{
-  label: "Settings",
-  icon: Settings,
-  href: "/fair-registration/admin/settings",
-}];
+	// Check admin role
+	const roles = (session as Record<string, unknown>)?.roles as string[] | undefined;
+	if (!roles?.includes("admin")) {
+		redirect("/fair-registration");
+	}
 
-export default function AdminLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <div className="min-h-full h-full">
-      <SidebarProvider className="min-h-full h-full">
-        <SideBar nav={nav} footerNav={footerNav} variant="floating" collapsible="icon" className="min-h-full h-full sticky" />
-        <SidebarInset className="min-h-full h-full">
-          { children }
-        </SidebarInset>
-      </SidebarProvider>
-    </div>
-  )
+	return <>{children}</>;
 }

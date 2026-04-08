@@ -1,26 +1,38 @@
-"use client";
+export const dynamic = "force-dynamic";
 
-import { Calendar } from "lucide-react";
+import { getActiveFair, getRolesWithSlots } from "@/lib/actions/fair";
+import { getUserRegistrations } from "@/lib/actions/registration";
+import { getServerSession } from "@/lib/auth/get-session";
+import { FairRegistrationClient } from "./fair-registration-client";
 
-export default function Page() {
-  return (
-    <div className="h-full flex">
-      {/* Filters and Calendar */}
-      <div className="h-full shrink-0 border-r border-border bg-card p-4">
-        <Calendar className="bg-transparent [--cell-size:2.1rem]" />
-      </div>
+export default async function Page() {
+	const fair = await getActiveFair();
 
-      {/* Main Content */}
-      <div className="h-full overflow-y-auto">
-        {/* Placeholder items */}
-        <div className="p-4">
-          <div className="mb-4 rounded-lg bg-muted p-4">Item 1</div>
-          <div className="mb-4 rounded-lg bg-muted p-4">Item 2</div>
-          <div className="mb-4 rounded-lg bg-muted p-4">Item 3</div>
-          <div className="mb-4 rounded-lg bg-muted p-4">Item 4</div>
-          <div className="mb-4 rounded-lg bg-muted p-4">Item 5</div>
-        </div>
-      </div>
-    </div>
-  )
+	if (!fair) {
+		return (
+			<div className="flex flex-1 items-center justify-center p-4">
+				<p className="text-muted-foreground">
+					No fair is currently active. Check back later.
+				</p>
+			</div>
+		);
+	}
+
+	const session = await getServerSession();
+	const roles = await getRolesWithSlots(fair.id);
+	const userRegistrations = session?.user
+		? await getUserRegistrations(session.user.id)
+		: [];
+
+	return (
+		<FairRegistrationClient
+			roles={roles}
+			isLoggedIn={!!session?.user}
+			userId={session?.user?.id ?? null}
+			userRegistrations={userRegistrations}
+			fairStartDate={fair.startDate}
+			fairEndDate={fair.endDate}
+			fairClosedDates={fair.closedDates}
+		/>
+	);
 }

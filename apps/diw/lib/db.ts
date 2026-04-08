@@ -9,8 +9,8 @@ const allSchemas = { ...schema, ...authSchema };
 export const db = drizzle(process.env.DATABASE_CONNECTION_STRING!, { schema: allSchemas });
 export {
 	fairDetailsTable,
-	shiftsTable,
-	timeSlotsTable,
+	rolesTable,
+	slotsTable,
 	registrationsTable,
 	adminUsersTable
 } from './db/schema';
