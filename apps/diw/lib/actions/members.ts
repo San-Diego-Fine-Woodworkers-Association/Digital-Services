@@ -5,7 +5,7 @@
  */
 
 import { eq, sql } from "drizzle-orm";
-import { getServerSession } from "@/lib/auth/get-session";
+import { requireAdmin } from "@/lib/auth/get-session";
 import { db } from "@/lib/db";
 import { adminUsersTable, membershipTable } from "@/lib/db/schema";
 import { user as userTable } from "@/lib/db/auth-schema";
@@ -25,15 +25,7 @@ import { parseMembersFromCsv } from "@/lib/utils/members";
  * Get all members from database
  */
 export async function getMembersForAdmin(): Promise<DbMember[]> {
-  const session = await getServerSession();
-  if (!session) throw new Error("Unauthorized");
-
-  // Check if user is admin
-  const adminUser = await db.query.adminUsersTable.findFirst({
-    where: eq(adminUsersTable.memberId, session.user?.memberId || ""),
-  });
-
-  if (!adminUser) throw new Error("Unauthorized - not an admin");
+  await requireAdmin();
 
   // Join user, membership, and admin_users to get all members
   const members = await db.execute<DbMember>(
@@ -62,15 +54,7 @@ export async function getMembersForAdmin(): Promise<DbMember[]> {
 export async function calculateMemberChanges(
   csvData: MemberData[]
 ): Promise<MemberDiff> {
-  const session = await getServerSession();
-  if (!session) throw new Error("Unauthorized");
-
-  // Check if user is admin
-  const adminUser = await db.query.adminUsersTable.findFirst({
-    where: eq(adminUsersTable.memberId, session.user?.memberId || ""),
-  });
-
-  if (!adminUser) throw new Error("Unauthorized - not an admin");
+  const session = await requireAdmin();
 
   const currentMembers = await getMembersForAdmin();
   return calculateMemberDiff(session.user?.memberId, csvData, currentMembers);
@@ -83,17 +67,9 @@ export async function calculateMemberChanges(
 export async function applyMemberChanges(
   diff: MemberDiff
 ): Promise<ApplyChangesResult> {
-  const session = await getServerSession();
-  if (!session) throw new Error("Unauthorized");
+  const session = await requireAdmin();
 
   const currentMemberId = session.user?.memberId;
-
-  // Check if user is admin
-  const adminUser = await db.query.adminUsersTable.findFirst({
-    where: eq(adminUsersTable.memberId, currentMemberId || ""),
-  });
-
-  if (!adminUser) throw new Error("Unauthorized - not an admin");
 
   // Safety check: do not allow deletion of current user
   const willDeleteCurrentUser = diff.toDelete.some(
@@ -217,15 +193,7 @@ export async function updateSingleMember(
   memberId: string,
   updates: Partial<MemberData>
 ): Promise<ApplyChangesResult> {
-  const session = await getServerSession();
-  if (!session) throw new Error("Unauthorized");
-
-  // Check if user is admin
-  const adminUser = await db.query.adminUsersTable.findFirst({
-    where: eq(adminUsersTable.memberId, session.user?.memberId || ""),
-  });
-
-  if (!adminUser) throw new Error("Unauthorized - not an admin");
+  await requireAdmin();
 
   try {
     await db.transaction(async (tx) => {
@@ -246,32 +214,32 @@ export async function updateSingleMember(
       }
 
       // Update user table
-      if (updates.name || updates.email || updates.address) {
+      const userUpdates: Record<string, string> = {};
+      if (updates.name !== undefined) userUpdates.name = updates.name;
+      if (updates.email !== undefined) userUpdates.email = updates.email;
+      if (updates.address !== undefined) userUpdates.address = updates.address;
+      if (Object.keys(userUpdates).length > 0) {
         await tx
           .update(userTable)
-          .set({
-            ...(updates.name && { name: updates.name }),
-            ...(updates.email && { email: updates.email }),
-            ...(updates.address && { address: updates.address }),
-          })
+          .set(userUpdates)
           .where(eq(userTable.id, userId));
       }
 
       // Update membership table
-      if (updates.email || updates.membership) {
+      const membershipUpdates: Record<string, string> = {};
+      if (updates.email !== undefined) membershipUpdates.email = updates.email;
+      if (updates.membership !== undefined) membershipUpdates.membership = updates.membership;
+      if (Object.keys(membershipUpdates).length > 0) {
         await tx
           .update(membershipTable)
-          .set({
-            ...(updates.email && { email: updates.email }),
-            ...(updates.membership && { membership: updates.membership }),
-          })
+          .set(membershipUpdates)
           .where(eq(membershipTable.memberId, memberId));
       }
 
       // Update admin status
       if (updates.isAdmin !== undefined) {
         if (updates.isAdmin) {
-          await tx.insert(adminUsersTable).values({ memberId });
+          await tx.insert(adminUsersTable).values({ memberId }).onConflictDoNothing();
         } else {
           await tx
             .delete(adminUsersTable)
@@ -297,15 +265,7 @@ export async function updateSingleMember(
 export async function deleteSingleMember(
   memberId: string
 ): Promise<ApplyChangesResult> {
-  const session = await getServerSession();
-  if (!session) throw new Error("Unauthorized");
-
-  // Check if user is admin
-  const adminUser = await db.query.adminUsersTable.findFirst({
-    where: eq(adminUsersTable.memberId, session.user?.memberId || ""),
-  });
-
-  if (!adminUser) throw new Error("Unauthorized - not an admin");
+  const session = await requireAdmin();
 
   // Safety check: cannot delete current user
   if (memberId === session.user?.memberId) {

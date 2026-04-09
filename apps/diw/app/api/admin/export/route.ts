@@ -1,4 +1,4 @@
-import { getServerSession } from "@/lib/auth/get-session";
+import { requireAdmin } from "@/lib/auth/get-session";
 import { getActiveFair } from "@/lib/actions/fair";
 import { getAllRegistrations } from "@/lib/actions/admin";
 
@@ -14,14 +14,10 @@ function escapeCSV(value: string) {
 }
 
 export async function GET() {
-	const session = await getServerSession();
-	if (!session?.user) {
+	try {
+		await requireAdmin();
+	} catch {
 		return new Response("Unauthorized", { status: 401 });
-	}
-
-	const sessionRoles = (session as Record<string, unknown>)?.roles as string[] | undefined;
-	if (!sessionRoles?.includes("admin")) {
-		return new Response("Forbidden", { status: 403 });
 	}
 
 	const fair = await getActiveFair();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@sdfwa/ui/components/button";
 import { DbMember, MemberDiff } from "@/lib/types/members";
 
@@ -9,14 +9,12 @@ export function ImportStepReview({
   diff,
   isLoading,
   onBack,
-  onConfirm,
-  currentMembers,
+  onConfirm
 }: {
   diff: MemberDiff | null;
   isLoading: boolean;
   onBack: () => void;
   onConfirm: () => void;
-  currentMembers: DbMember[];
 }) {
   const [expandedSections, setExpandedSections] = useState({
     add: true,
@@ -35,29 +33,8 @@ export function ImportStepReview({
     }));
   };
 
-  // Get current user's ID (this would normally come from session)
-  // For now, we'll check via the props passed
-  const currentUserMemberId = null; // This should be passed in or determined from session
-
-  // Check if any deletions would affect current user
-  const willDeleteCurrentUser = diff.toDelete.some(
-    (m) => m.memberId === currentUserMemberId
-  );
-
   return (
     <div className="space-y-4">
-      {willDeleteCurrentUser && (
-        <div className="p-4 bg-destructive/10 text-destructive rounded-lg flex gap-3">
-          <AlertTriangle className="size-5 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium">Warning</p>
-            <p className="text-sm mt-1">
-              You are about to delete your own account. This action cannot be undone.
-            </p>
-          </div>
-        </div>
-      )}
-
       <div className="space-y-2">
         {/* Add Section */}
         <div className="border rounded-lg">
@@ -202,7 +179,7 @@ export function ImportStepReview({
         <Button variant="outline" onClick={onBack} disabled={isLoading}>
           Back
         </Button>
-        <Button onClick={onConfirm} disabled={isLoading || willDeleteCurrentUser}>
+        <Button onClick={onConfirm} disabled={isLoading}>
           Confirm
         </Button>
       </div>

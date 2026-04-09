@@ -3,15 +3,7 @@
 import { eq, and, notInArray, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db, fairDetailsTable, rolesTable, slotsTable, registrationsTable } from "../db";
-import { getServerSession } from "../auth/get-session";
-
-async function requireAdmin() {
-	const session = await getServerSession();
-	if (!session?.user) throw new Error("Unauthorized");
-	const roles = (session as Record<string, unknown>)?.roles as string[] | undefined;
-	if (!roles?.includes("admin")) throw new Error("Forbidden");
-	return session;
-}
+import { requireAdmin } from "../auth/get-session";
 
 // Fair actions
 
@@ -167,6 +159,7 @@ export async function deleteSlot(slotId: string) {
 // Registration actions (admin)
 
 export async function getAllRegistrations(fairId: string) {
+	await requireAdmin();
 	const roles = await db.query.rolesTable.findMany({
 		where: eq(rolesTable.fairId, fairId),
 		with: {

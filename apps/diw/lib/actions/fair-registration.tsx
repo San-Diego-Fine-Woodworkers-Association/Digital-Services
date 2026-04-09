@@ -4,8 +4,10 @@ import get from "lodash-es/get";
 import { revalidatePath } from "next/cache";
 import { db, rolesTable, slotsTable } from "../db";
 import { Role, Slot } from "../types/fair-registration";
+import { requireAdmin } from "../auth/get-session";
 
 export async function getRoles() {
+	await requireAdmin();
 	return await db.query.rolesTable.findMany({
 		with: {
 			slots: true
@@ -14,6 +16,7 @@ export async function getRoles() {
 }
 
 export async function getRoleById(roleId: string) {
+	await requireAdmin();
 	return await db.query.rolesTable.findFirst({
 		where: (role, { eq }) => eq(role.id, roleId),
 		with: {
@@ -23,6 +26,7 @@ export async function getRoleById(roleId: string) {
 }
 
 export async function createRole({ role, slots }: { role: Omit<Role, "id" | "slots">, slots: Omit<Slot, "id" | "roleId">[] }) {
+	await requireAdmin();
 	await db.transaction(async (tx) => {
 		const createdRole: { id: string }[] = await tx.insert(rolesTable).values({
 			...role,

@@ -130,7 +130,6 @@ export function MembersImportDialog({
             isLoading={isLoading}
             onBack={() => setStep("upload")}
             onConfirm={handleConfirmChanges}
-            currentMembers={currentMembers}
           />
         )}
 

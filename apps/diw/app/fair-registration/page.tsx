@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { getActiveFair, getRolesWithSlots } from "@/lib/actions/fair";
-import { getUserRegistrations } from "@/lib/actions/registration";
+import { getMyRegistrations } from "@/lib/actions/registration";
 import { getServerSession } from "@/lib/auth/get-session";
 import { FairRegistrationClient } from "./fair-registration-client";
 
@@ -21,7 +21,7 @@ export default async function Page() {
 	const session = await getServerSession();
 	const roles = await getRolesWithSlots(fair.id);
 	const userRegistrations = session?.user
-		? await getUserRegistrations(session.user.id)
+		? await getMyRegistrations()
 		: [];
 
 	return (

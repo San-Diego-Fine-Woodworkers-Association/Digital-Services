@@ -3,9 +3,9 @@
 import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db, registrationsTable, slotsTable } from "../db";
-import { getServerSession } from "../auth/get-session";
+import { getServerSession, requireAuth } from "../auth/get-session";
 
-export async function getUserRegistrations(userId: string) {
+async function getUserRegistrations(userId: string) {
 	return await db.query.registrationsTable.findMany({
 		where: eq(registrationsTable.userId, userId),
 		with: {
