@@ -13,7 +13,8 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "typecheck": "tsc --noEmit",
-    "seed:members": "tsx scripts/seed-members.ts"
+    "seed": "tsx scripts/seed.ts",
+    "seed:members": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@sdfwa/ui": "workspace:*",

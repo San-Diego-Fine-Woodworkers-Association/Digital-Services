@@ -29,10 +29,10 @@ const options = {
 const customSessionPlugin = customSession(async({ user, session }) => {
   const [potentialAdmin, memberRecord] = await Promise.all([
     db.query.adminUsersTable.findFirst({
-      where: eq(adminUsersTable.memberId, user.id)
+      where: eq(adminUsersTable.memberId, user.memberId)
     }),
     db.query.membershipTable.findFirst({
-      where: eq(membershipTable.memberId, user.id)
+      where: eq(membershipTable.memberId, user.memberId)
     })
   ]);
 

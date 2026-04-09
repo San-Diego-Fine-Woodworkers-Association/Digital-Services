@@ -8,6 +8,13 @@
       "when": 1775078993905,
       "tag": "0000_dear_vapor",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1775709128200,
+      "tag": "0001_striped_toxin",
+      "breakpoints": true
     }
   ]
 }
