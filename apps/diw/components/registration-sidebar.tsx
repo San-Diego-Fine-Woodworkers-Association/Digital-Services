@@ -133,7 +133,7 @@ export function RegistrationSidebar({
 									})}
 									{selectedRoleNames.length > 0 && (
 										<Button
-											variant="flat"
+											variant="ghost"
 											onClick={onClearRoleFilter}
 											className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 text-left cursor-pointer"
 										>

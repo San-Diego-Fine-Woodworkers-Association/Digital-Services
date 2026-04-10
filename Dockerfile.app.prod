@@ -46,18 +46,20 @@ COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/public ./${APP_PATH}/
 COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/drizzle/ ./${APP_PATH}/drizzle/
 COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/drizzle.config.ts ./${APP_PATH}/drizzle.config.ts
 
-# Create a startup script that runs migrations then starts the server
-RUN echo '''
+RUN cat <<EOF > /app/start.sh
 #!/bin/sh
 set -e
 cd ${APP_PATH}
 bunx drizzle-kit migrate
-node server.js''' > /app/start.sh && chmod +x /app/start.sh
+node server.js
+EOF
+
+RUN chmod +x /app/start.sh
 
 USER app
 
 EXPOSE $PORT
-ENV PORT $PORT
+ENV PORT=$PORT
 
-ENV HOSTNAME "0.0.0.0"
+ENV HOSTNAME="0.0.0.0"
 CMD ["/app/start.sh"]

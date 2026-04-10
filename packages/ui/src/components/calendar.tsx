@@ -36,12 +36,13 @@ function Calendar({
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
+  selected?: Date | Date[];
 }) {
   const defaultClassNames = getDefaultClassNames();
 
   const computedModifiers = React.useMemo(() => {
     if (props.mode !== "multiple") return modifiers;
-    const selectedDates = (props.selected as Date[] | undefined) ?? [];
+    const selectedDates = Array.isArray(props.selected) ? props.selected : props.selected ? [props.selected] : [];
     const selectedSet = new Set(selectedDates.map(toISODateString));
     const rangeStart: Date[] = [];
     const rangeEnd: Date[] = [];
