@@ -1,27 +1,38 @@
-import { SideBar } from "@/components/fair-registration-sidebar"
+export const dynamic = "force-dynamic";
 
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@sdfwa/ui/components/sidebar"
+import { getActiveFair, getRolesWithSlots } from "@/lib/actions/fair";
+import { getMyRegistrations } from "@/lib/actions/registration";
+import { getServerSession } from "@/lib/auth/get-session";
+import { FairRegistrationClient } from "./fair-registration-client";
 
-export default function Page() {
-  return (
-    <SidebarProvider>
-      <SideBar />
-      <SidebarInset>
-        <header className="bg-background sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-5">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div key={i} className="bg-muted/50 aspect-square rounded-xl" />
-            ))}
-          </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  )
+export default async function Page() {
+	const fair = await getActiveFair();
+
+	if (!fair) {
+		return (
+			<div className="flex flex-1 items-center justify-center p-4">
+				<p className="text-muted-foreground">
+					No fair is currently active. Check back later.
+				</p>
+			</div>
+		);
+	}
+
+	const session = await getServerSession();
+	const roles = await getRolesWithSlots(fair.id);
+	const userRegistrations = session?.user
+		? await getMyRegistrations()
+		: [];
+
+	return (
+		<FairRegistrationClient
+			roles={roles}
+			isLoggedIn={!!session?.user}
+			userId={session?.user?.id ?? null}
+			userRegistrations={userRegistrations}
+			fairStartDate={fair.startDate}
+			fairEndDate={fair.endDate}
+			fairClosedDates={fair.closedDates}
+		/>
+	);
 }

@@ -1,16 +1,15 @@
-"use client";
-
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from 'next/image'
-import Link from "next/link";
 
 import "@sdfwa/ui/globals.css";
 import { Providers } from "@/components/providers";
 import { AppLayout } from "@sdfwa/ui/components/layouts/app-layout";
-import { NavButton } from "@sdfwa/ui/components/nav-button";
+
 import { Logo } from "@sdfwa/ui/components/logo";
 
-import { AccountButton } from "@/components/account-button";
+import { HeaderActions } from "@/components/header-actions";
+import { getServerSession } from "@/lib/auth/get-session";
+import { HeaderNav } from "@/components/header-nav";
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -22,11 +21,15 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession();
+  const user = session?.user;
+  const roles = (session as Record<string, unknown>)?.roles as string[] | undefined;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -35,34 +38,8 @@ export default function RootLayout({
         <Providers>
           <AppLayout
             logo={<Logo><Image src="/images/full-logo.png" alt="SDFWA Logo" width={1090} height={746} /></Logo>}
-            navigation={
-              <>
-                <NavButton asChild><Link href="/fair-registration">Register</Link></NavButton>
-                <NavButton asChild><Link href="/fair-registration/my-registrations">My Registrations</Link></NavButton>
-                <NavButton asChild><Link href="/fair-registration/profile">Profile</Link></NavButton>
-                <NavButton asChild><Link href="/fair-registration/admin">Admin</Link></NavButton>
-              </>
-            }
-            actions={
-              <>
-                <AccountButton
-                  firstName="John"
-                  lastName="Doe"
-                  dropdownGroups={[
-                    {
-                      items: [
-                        { label: "Profile", onClick: () => alert("Go to profile") },
-                      ],
-                    },
-                    {
-                      items: [
-                        { label: "Sign Out", onClick: () => alert("Signing out...") },
-                      ],
-                    },
-                  ]}
-                />
-              </>
-            }
+            navigation={<HeaderNav roles={roles} />}
+            actions={<HeaderActions user={user} />}
           >
             {children}
           </AppLayout>

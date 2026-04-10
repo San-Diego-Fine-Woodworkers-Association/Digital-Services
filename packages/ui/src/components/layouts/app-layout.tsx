@@ -1,7 +1,14 @@
 "use client";
 
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState } from "react";
 import { cn } from "@sdfwa/ui/lib/utils";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@sdfwa/ui/components/sheet";
+import { MenuIcon } from "lucide-react";
 
 interface AppLayoutProps {
   /**
@@ -74,6 +81,8 @@ export function AppLayout({
   headerClassName,
   contentClassName,
 }: AppLayoutProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className={cn("flex h-screen flex-col bg-background", className)}>
       {/* Header */}
@@ -87,8 +96,18 @@ export function AppLayout({
           headerClassName,
         )}
       >
-        {/* Logo Section - Top Left */}
-        <div className="shrink-0">
+        {/* Mobile menu button + Logo */}
+        <div className="flex shrink-0 items-center gap-2">
+          {navigation && (
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground sm:hidden"
+              aria-label="Open menu"
+            >
+              <MenuIcon className="size-5" />
+            </button>
+          )}
           {logo ? (
             <div className="flex items-center justify-center">{logo}</div>
           ) : (
@@ -96,7 +115,7 @@ export function AppLayout({
           )}
         </div>
 
-        {/* Navigation Section - Center */}
+        {/* Navigation Section - Center (desktop) */}
         <nav className="hidden flex-1 items-center justify-center gap-1 sm:flex">
           {navigation ? (
             <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
@@ -113,8 +132,25 @@ export function AppLayout({
         </div>
       </header>
 
+      {/* Mobile navigation sheet */}
+      {navigation && (
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetContent side="left" className="w-64 p-0">
+            <SheetHeader className="border-b p-4">
+              <SheetTitle className="text-sm font-semibold">Menu</SheetTitle>
+            </SheetHeader>
+            <nav
+              className="flex flex-col gap-1 p-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {navigation}
+            </nav>
+          </SheetContent>
+        </Sheet>
+      )}
+
       {/* Main Content */}
-      <main className={cn("flex-1 overflow-auto", contentClassName)}>
+      <main className={cn("flex-1 overflow-auto flex items-stretch", contentClassName)}>
         {children}
       </main>
     </div>

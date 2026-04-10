@@ -1,46 +1,49 @@
 "use server";
 
 import get from "lodash-es/get";
-import { db, shiftsTable, timeSlotsTable } from "../db";
-import { Shift, TimeSlot } from "../types/fair-registration";
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
+import { db, rolesTable, slotsTable } from "../db";
+import { Role, Slot } from "../types/fair-registration";
+import { requireAdmin } from "../auth/get-session";
 
-export async function getShifts() {
-	return await db.query.shiftsTable.findMany({
+export async function getRoles() {
+	await requireAdmin();
+	return await db.query.rolesTable.findMany({
 		with: {
-			timeSlots: true
+			slots: true
 		}
 	});
 }
 
-export async function getShiftById(shiftId: string) {
-	return await db.query.shiftsTable.findFirst({
-		where: (shift, { eq }) => eq(shift.id, shiftId),
+export async function getRoleById(roleId: string) {
+	await requireAdmin();
+	return await db.query.rolesTable.findFirst({
+		where: (role, { eq }) => eq(role.id, roleId),
 		with: {
-			timeSlots: true
+			slots: true
 		}
 	});
 }
 
-export async function createShift({ shift, timeSlots }: { shift: Omit<Shift, "id">, timeSlots: Omit<TimeSlot, "id" | "shiftId">[] }) {
+export async function createRole({ role, slots }: { role: Omit<Role, "id" | "slots">, slots: Omit<Slot, "id" | "roleId">[] }) {
+	await requireAdmin();
 	await db.transaction(async (tx) => {
-		const createdShift: { id: string }[] = await tx.insert(shiftsTable).values({
-			...shift,
-			startTime: shift.startTime.toISOString(),
-			endTime: shift.endTime.toISOString()
-		}).returning({ id: shiftsTable.id });
-		const shiftId = get(createdShift, [0, "id"]);
+		const createdRole: { id: string }[] = await tx.insert(rolesTable).values({
+			...role,
+		}).returning({ id: rolesTable.id });
+		const roleId = get(createdRole, [0, "id"]);
 
-		await tx.insert(timeSlotsTable).values(
-			timeSlots.map((timeSlot) => ({
-				...timeSlot,
-				shiftId,
-				date: timeSlot.date.toISOString(),
-				startTime: timeSlot.startTime.toISOString(),
-				endTime: timeSlot.endTime.toISOString()
-			}))
-		);
+		if (slots.length > 0) {
+			await tx.insert(slotsTable).values(
+				slots.map((slot) => ({
+					...slot,
+					roleId,
+					startTime: new Date(slot.startTime),
+					endTime: new Date(slot.endTime)
+				}))
+			);
+		}
 	});
 
-	refresh();
+	revalidatePath("/fair-registration");
 }

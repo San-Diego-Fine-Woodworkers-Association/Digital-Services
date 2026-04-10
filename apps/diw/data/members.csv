@@ -1,0 +1,6 @@
+memberId,name,email,membership,address,isAdmin
+M001,Alice Johnson,alice@example.com,volunteer,"123 Main St, Portland, OR",false
+M002,Bob Smith,bob@example.com,volunteer,"456 Oak Ave, Portland, OR",false
+M003,Carol Davis,carol@example.com,volunteer,"789 Pine Rd, Portland, OR",false
+M004,David Wilson,david@example.com,volunteer,"321 Elm St, Portland, OR",false
+M005,Admin User,admin@sdfwa.org,volunteer,"100 Admin St, Portland, OR",true

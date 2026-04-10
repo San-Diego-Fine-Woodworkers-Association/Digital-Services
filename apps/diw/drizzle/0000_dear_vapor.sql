@@ -35,11 +35,13 @@ CREATE TABLE "user" (
 	"image" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	"role" text,
 	"banned" boolean DEFAULT false,
 	"ban_reason" text,
 	"ban_expires" timestamp,
-	CONSTRAINT "user_email_unique" UNIQUE("email")
+	"member_id" text,
+	"address" text,
+	CONSTRAINT "user_email_unique" UNIQUE("email"),
+	CONSTRAINT "user_member_id_unique" UNIQUE("member_id")
 );
 --> statement-breakpoint
 CREATE TABLE "verification" (
@@ -52,14 +54,15 @@ CREATE TABLE "verification" (
 );
 --> statement-breakpoint
 CREATE TABLE "admin_users" (
-	"memberId" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	CONSTRAINT "admin_users_memberId_unique" UNIQUE("memberId")
+	"memberId" text PRIMARY KEY NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "fair_details" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"name" text NOT NULL,
 	"startDate" date NOT NULL,
 	"endDate" date NOT NULL,
+	"closedDates" json DEFAULT '[]'::json NOT NULL,
 	CONSTRAINT "fair_details_id_unique" UNIQUE("id")
 );
 --> statement-breakpoint
@@ -72,35 +75,35 @@ CREATE TABLE "membership" (
 --> statement-breakpoint
 CREATE TABLE "registrations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"timeSlotId" uuid NOT NULL,
-	"memberId" text NOT NULL,
+	"slotId" uuid NOT NULL,
+	"userId" text NOT NULL,
 	CONSTRAINT "registrations_id_unique" UNIQUE("id")
 );
 --> statement-breakpoint
-CREATE TABLE "shifts" (
+CREATE TABLE "roles" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"fairId" integer NOT NULL,
+	"fairId" uuid NOT NULL,
 	"name" text NOT NULL,
-	"startTime" date NOT NULL,
-	"endTime" date NOT NULL,
 	"numberOfVolunteers" integer NOT NULL,
-	CONSTRAINT "shifts_id_unique" UNIQUE("id")
+	CONSTRAINT "roles_id_unique" UNIQUE("id")
 );
 --> statement-breakpoint
-CREATE TABLE "time_slots" (
+CREATE TABLE "slots" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"shiftId" uuid NOT NULL,
+	"roleId" uuid NOT NULL,
 	"date" date NOT NULL,
-	"startTime" date NOT NULL,
-	"endTime" date NOT NULL,
+	"startTime" timestamp NOT NULL,
+	"endTime" timestamp NOT NULL,
 	"numberOfVolunteers" integer NOT NULL,
-	CONSTRAINT "time_slots_id_unique" UNIQUE("id")
+	CONSTRAINT "slots_id_unique" UNIQUE("id")
 );
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "registrations" ADD CONSTRAINT "registrations_timeSlotId_time_slots_id_fk" FOREIGN KEY ("timeSlotId") REFERENCES "public"."time_slots"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "time_slots" ADD CONSTRAINT "time_slots_shiftId_shifts_id_fk" FOREIGN KEY ("shiftId") REFERENCES "public"."shifts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "registrations" ADD CONSTRAINT "registrations_slotId_slots_id_fk" FOREIGN KEY ("slotId") REFERENCES "public"."slots"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "registrations" ADD CONSTRAINT "registrations_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "roles" ADD CONSTRAINT "roles_fairId_fair_details_id_fk" FOREIGN KEY ("fairId") REFERENCES "public"."fair_details"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "slots" ADD CONSTRAINT "slots_roleId_roles_id_fk" FOREIGN KEY ("roleId") REFERENCES "public"."roles"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "account_userId_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");

@@ -27,21 +27,18 @@ const options = {
 
 
 const customSessionPlugin = customSession(async({ user, session }) => {
-  const [
-    potentialAdmin,
-    { membership } = {}
-  ] = await Promise.all([
+  const [potentialAdmin, memberRecord] = await Promise.all([
     db.query.adminUsersTable.findFirst({
       where: eq(adminUsersTable.memberId, user.memberId)
     }),
     db.query.membershipTable.findFirst({
       where: eq(membershipTable.memberId, user.memberId)
     })
-  ])
+  ]);
 
-  const roles = [];
+  const roles: string[] = [];
   if (potentialAdmin) roles.push("admin");
-  if (membership) roles.push(membership);
+  if (memberRecord?.membership) roles.push(memberRecord.membership);
 
   return {
     roles,

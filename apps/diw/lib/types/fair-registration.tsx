@@ -1,18 +1,29 @@
-export interface TimeSlot {
+export interface Slot {
 	id: string;
-	shiftId: string;
-	date: Date;
+	roleId: string;
+	date: string;
 	startTime: Date;
 	endTime: Date;
 	numberOfVolunteers: number;
 }
 
-export interface Shift {
+export interface Role {
 	id: string;
-	fairId: number;
+	fairId: string;
 	name: string;
-	startTime: Date;
-	endTime: Date;
 	numberOfVolunteers: number;
-	timeSlots: TimeSlot[];
+	slots: Slot[];
+}
+
+export interface FairDetails {
+	id: string;
+	name: string;
+	startDate: string;
+	endDate: string;
+}
+
+export interface Registration {
+	id: string;
+	slotId: string;
+	userId: string;
 }

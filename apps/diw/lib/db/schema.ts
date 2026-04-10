@@ -1,11 +1,11 @@
 import { relations } from "drizzle-orm";
-import { date, integer, pgTable, text, uuid } from "drizzle-orm/pg-core";
+import { date, integer, json, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
 
 // START TEMP USER TABLES
 export const adminUsersTable = pgTable("admin_users", {
-	memberId: uuid().primaryKey().defaultRandom().unique()
+	memberId: text().primaryKey()
 });
 
 export const membershipTable = pgTable("membership", {
@@ -17,53 +17,65 @@ export const membershipTable = pgTable("membership", {
 
 export const fairDetailsTable = pgTable("fair_details", {
   id: uuid().primaryKey().defaultRandom().unique(),
+	name: text().notNull(),
 	startDate: date().notNull(),
-	endDate: date().notNull()
+	endDate: date().notNull(),
+	closedDates: json().$type<string[]>().notNull().default([]),
 });
 
-export const shiftsTable = pgTable("shifts", {
+export const rolesTable = pgTable("roles", {
 	id: uuid().primaryKey().defaultRandom().unique(),
-	fairId: integer().notNull(),
+	fairId: uuid().notNull().references(() => fairDetailsTable.id),
 	name: text().notNull(),
-	startTime: date().notNull(),
-	endTime: date().notNull(),
 	numberOfVolunteers: integer().notNull()
 });
 
-export const timeSlotsTable = pgTable("time_slots", {
+export const slotsTable = pgTable("slots", {
 	id: uuid().primaryKey().defaultRandom().unique(),
-	shiftId: uuid().notNull().references(() => shiftsTable.id),
+	roleId: uuid().notNull().references(() => rolesTable.id),
 	date: date().notNull(),
-	startTime: date().notNull(),
-	endTime: date().notNull(),
+	startTime: timestamp().notNull(),
+	endTime: timestamp().notNull(),
 	numberOfVolunteers: integer().notNull()
 });
 
 export const registrationsTable = pgTable("registrations", {
 	id: uuid().primaryKey().defaultRandom().unique(),
-	timeSlotId: uuid().notNull().references(() => timeSlotsTable.id),
-	memberId: text().notNull()
+	slotId: uuid().notNull().references(() => slotsTable.id),
+	userId: text().notNull().references(() => user.id)
 });
 
-export const timeSlotRelations = relations(timeSlotsTable, ({ one, many }) => ({
-	shift: one(shiftsTable, {
-		fields: [timeSlotsTable.shiftId],
-		references: [shiftsTable.id]
+export const fairDetailsRelations = relations(fairDetailsTable, ({ many }) => ({
+	roles: many(rolesTable)
+}));
+
+export const roleRelations = relations(rolesTable, ({ one, many }) => ({
+	fair: one(fairDetailsTable, {
+		fields: [rolesTable.fairId],
+		references: [fairDetailsTable.id]
+	}),
+	slots: many(slotsTable)
+}));
+
+export const slotRelations = relations(slotsTable, ({ one, many }) => ({
+	role: one(rolesTable, {
+		fields: [slotsTable.roleId],
+		references: [rolesTable.id]
 	}),
 	registrations: many(registrationsTable)
 }));
 
 export const registrationRelations = relations(registrationsTable, ({ one }) => ({
-	timeSlot: one(timeSlotsTable, {
-		fields: [registrationsTable.timeSlotId],
-		references: [timeSlotsTable.id]
+	slot: one(slotsTable, {
+		fields: [registrationsTable.slotId],
+		references: [slotsTable.id]
+	}),
+	user: one(user, {
+		fields: [registrationsTable.userId],
+		references: [user.id]
 	})
 }));
 
-export const shiftRelations = relations(shiftsTable, ({ many }) => ({
-	timeSlots: many(timeSlotsTable)
-}));
-
-export const userTimeSlotRelations = relations(user, ({ many }) => ({
-	registrations: many(timeSlotsTable)
+export const userSlotRelations = relations(user, ({ many }) => ({
+	registrations: many(registrationsTable)
 }));

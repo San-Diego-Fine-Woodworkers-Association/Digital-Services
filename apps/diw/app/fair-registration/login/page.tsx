@@ -1,0 +1,22 @@
+import { redirect } from "next/navigation";
+import LoginForm from "@/components/login-form";
+import { getServerSession } from "@/lib/auth/get-session";
+
+export default async function LoginPage() {
+	const session = await getServerSession();
+
+	const user = session?.user;
+
+	// If the user is already signed in, redirect to the main page
+	if (user) {
+		redirect("/fair-registration");
+	}
+
+	return (
+		<div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center p-4">
+			<div className="w-full max-w-md">
+				<LoginForm />
+			</div>
+		</div>
+	);
+}

@@ -1,5 +1,5 @@
 {
-  "id": "6a67a585-d164-4fcf-add0-dbe8286faffa",
+  "id": "3e6ce6c5-f573-4147-9577-dac584d04720",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -281,12 +281,6 @@
           "notNull": true,
           "default": "now()"
         },
-        "role": {
-          "name": "role",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "banned": {
           "name": "banned",
           "type": "boolean",
@@ -305,6 +299,18 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
+        },
+        "member_id": {
+          "name": "member_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -316,6 +322,13 @@
           "nullsNotDistinct": false,
           "columns": [
             "email"
+          ]
+        },
+        "user_member_id_unique": {
+          "name": "user_member_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "member_id"
           ]
         }
       },
@@ -396,24 +409,15 @@
       "columns": {
         "memberId": {
           "name": "memberId",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "admin_users_memberId_unique": {
-          "name": "admin_users_memberId_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "memberId"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -429,6 +433,12 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "startDate": {
           "name": "startDate",
           "type": "date",
@@ -440,6 +450,13 @@
           "type": "date",
           "primaryKey": false,
           "notNull": true
+        },
+        "closedDates": {
+          "name": "closedDates",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::json"
         }
       },
       "indexes": {},
@@ -508,14 +525,14 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "timeSlotId": {
-          "name": "timeSlotId",
+        "slotId": {
+          "name": "slotId",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "memberId": {
-          "name": "memberId",
+        "userId": {
+          "name": "userId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -523,12 +540,25 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "registrations_timeSlotId_time_slots_id_fk": {
-          "name": "registrations_timeSlotId_time_slots_id_fk",
+        "registrations_slotId_slots_id_fk": {
+          "name": "registrations_slotId_slots_id_fk",
           "tableFrom": "registrations",
-          "tableTo": "time_slots",
+          "tableTo": "slots",
           "columnsFrom": [
-            "timeSlotId"
+            "slotId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "registrations_userId_user_id_fk": {
+          "name": "registrations_userId_user_id_fk",
+          "tableFrom": "registrations",
+          "tableTo": "user",
+          "columnsFrom": [
+            "userId"
           ],
           "columnsTo": [
             "id"
@@ -551,8 +581,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.shifts": {
-      "name": "shifts",
+    "public.roles": {
+      "name": "roles",
       "schema": "",
       "columns": {
         "id": {
@@ -564,83 +594,13 @@
         },
         "fairId": {
           "name": "fairId",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "name": {
           "name": "name",
           "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "startTime": {
-          "name": "startTime",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "endTime": {
-          "name": "endTime",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "numberOfVolunteers": {
-          "name": "numberOfVolunteers",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "shifts_id_unique": {
-          "name": "shifts_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.time_slots": {
-      "name": "time_slots",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "shiftId": {
-          "name": "shiftId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "date": {
-          "name": "date",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "startTime": {
-          "name": "startTime",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "endTime": {
-          "name": "endTime",
-          "type": "date",
           "primaryKey": false,
           "notNull": true
         },
@@ -653,12 +613,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "time_slots_shiftId_shifts_id_fk": {
-          "name": "time_slots_shiftId_shifts_id_fk",
-          "tableFrom": "time_slots",
-          "tableTo": "shifts",
+        "roles_fairId_fair_details_id_fk": {
+          "name": "roles_fairId_fair_details_id_fk",
+          "tableFrom": "roles",
+          "tableTo": "fair_details",
           "columnsFrom": [
-            "shiftId"
+            "fairId"
           ],
           "columnsTo": [
             "id"
@@ -669,8 +629,80 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "time_slots_id_unique": {
-          "name": "time_slots_id_unique",
+        "roles_id_unique": {
+          "name": "roles_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.slots": {
+      "name": "slots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "roleId": {
+          "name": "roleId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "startTime": {
+          "name": "startTime",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "endTime": {
+          "name": "endTime",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "numberOfVolunteers": {
+          "name": "numberOfVolunteers",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "slots_roleId_roles_id_fk": {
+          "name": "slots_roleId_roles_id_fk",
+          "tableFrom": "slots",
+          "tableTo": "roles",
+          "columnsFrom": [
+            "roleId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "slots_id_unique": {
+          "name": "slots_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "id"

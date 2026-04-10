@@ -12,7 +12,8 @@
     "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@sdfwa/ui": "workspace:*",

@@ -15,7 +15,7 @@ export const memberLoginPlugin = () => {
           method: "POST",
         },
         async (ctx) => {
-          const { email, memberId, name, address, rememberMe } = ctx.body as { email: string; memberId: string, name: string, address: string, rememberMe: boolean };
+          const { email, memberId, rememberMe } = ctx.body as { email: string; memberId: string; rememberMe: boolean };
 
           if (!email || !memberId) {
             throw new APIError("BAD_REQUEST", { message: "Email and Member ID are required" });
@@ -39,9 +39,10 @@ export const memberLoginPlugin = () => {
           
           if (!user) {
             user = await ctx.context.internalAdapter.createUser({
+              id: memberId,
               email: member.email,
-              name,
-							address,
+              name: member.email.split("@")[0] || member.email,
+              memberId,
               emailVerified: true,
               createdAt: new Date(),
               updatedAt: new Date(),

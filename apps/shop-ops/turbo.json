@@ -1,8 +1,13 @@
 {
-  "extends": ["//"],
+  "extends": [
+    "//"
+  ],
   "tasks": {
     "build": {
-      "env": ["$TURBO_EXTENDS$", "DATABASE_CONNECTION_STRING"]
+      "env": [
+        "$TURBO_EXTENDS$",
+        "DATABASE_CONNECTION_STRING"
+      ]
     }
   }
 }

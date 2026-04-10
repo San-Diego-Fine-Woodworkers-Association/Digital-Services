@@ -1,41 +1,41 @@
 {
-  "name": "shop-ops",
-  "version": "0.1.0",
-  "type": "module",
-  "private": true,
-  "scripts": {
-    "dev": "next dev -p 3001",
-    "dev:turbo": "next dev --turbopack -p 3001",
-    "build": "next build",
-    "start": "next start -p 3001",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push --config drizzle.config.ts",
-    "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",
-    "db:seed": "tsx scripts/seed.ts",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@sdfwa/ui": "workspace:*",
-    "dotenv": "^17.2.4",
-    "drizzle-orm": "^0.45.1",
-    "drizzle-seed": "^0.3.1",
-    "next": "16.1.6",
-    "pg": "^8.18.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.18",
-    "@types/node": "^25.1.0",
-    "@types/pg": "^8.16.0",
-    "@types/react": "^19.2.10",
-    "@types/react-dom": "^19.2.3",
-    "@sdfwa/eslint-config": "workspace:*",
-    "@sdfwa/typescript-config": "workspace:*",
-    "drizzle-kit": "^0.31.9",
-    "eslint": "^9.39.2",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
-  }
+    "name": "shop-ops",
+    "version": "0.1.0",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "dev": "next dev -p 3001",
+        "dev:turbo": "next dev --turbopack -p 3001",
+        "build": "next build",
+        "start": "next start -p 3001",
+        "db:generate": "drizzle-kit generate",
+        "db:push": "drizzle-kit push --config drizzle.config.ts",
+        "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",
+        "db:seed": "tsx scripts/seed.ts",
+        "lint": "next lint",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@sdfwa/ui": "workspace:*",
+        "dotenv": "^17.2.4",
+        "drizzle-orm": "^0.45.1",
+        "drizzle-seed": "^0.3.1",
+        "next": "16.1.6",
+        "pg": "^8.18.0",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "^4.1.18",
+        "@types/node": "^25.1.0",
+        "@types/pg": "^8.16.0",
+        "@types/react": "^19.2.10",
+        "@types/react-dom": "^19.2.3",
+        "@sdfwa/eslint-config": "workspace:*",
+        "@sdfwa/typescript-config": "workspace:*",
+        "drizzle-kit": "^0.31.9",
+        "eslint": "^9.39.2",
+        "tsx": "^4.21.0",
+        "typescript": "^5.9.3"
+    }
 }
