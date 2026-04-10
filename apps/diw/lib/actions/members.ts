@@ -4,7 +4,7 @@
  * Server actions for member management
  */
 
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, inArray } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth/get-session";
 import { db } from "@/lib/db";
 import { adminUsersTable, membershipTable } from "@/lib/db/schema";
@@ -14,12 +14,12 @@ import {
   DbMember,
   MemberData,
   MemberDiff,
-  ParseResult,
 } from "@/lib/types/members";
-import {
-  calculateMemberDiff,
-} from "@/lib/utils/members-diff";
+import { calculateMemberDiff } from "@/lib/utils/members-diff";
 import { parseMembersFromCsv } from "@/lib/utils/members";
+
+// Size limit for CSV uploads (1MB)
+const MAX_CSV_SIZE = 1024 * 1024;
 
 /**
  * Get all members from database
@@ -27,7 +27,6 @@ import { parseMembersFromCsv } from "@/lib/utils/members";
 export async function getMembersForAdmin(): Promise<DbMember[]> {
   await requireAdmin();
 
-  // Join user, membership, and admin_users to get all members
   const members = await db.execute<DbMember>(
     sql`
       SELECT
@@ -49,29 +48,94 @@ export async function getMembersForAdmin(): Promise<DbMember[]> {
 }
 
 /**
- * Calculate diff between CSV data and current DB state
+ * Upload CSV, parse and validate on the server, and return the diff.
+ * The raw CSV string is sent once; parsing never happens on the client.
  */
-export async function calculateMemberChanges(
-  csvData: MemberData[]
-): Promise<MemberDiff> {
+export async function uploadAndCalculateMemberChanges(
+  csvContent: string
+): Promise<{ diff: MemberDiff } | { error: string }> {
   const session = await requireAdmin();
 
+  if (csvContent.length > MAX_CSV_SIZE) {
+    return { error: "CSV file is too large (max 1MB)" };
+  }
+
+  const parseResult = parseMembersFromCsv(csvContent);
+
+  if (!parseResult.success || !parseResult.data) {
+    const errorMsg = parseResult.errors
+      ?.map((e) => `Row ${e.row} (${e.field}): ${e.message}`)
+      .join("; ");
+    return { error: `Failed to parse CSV: ${errorMsg}` };
+  }
+
   const currentMembers = await getMembersForAdmin();
-  return calculateMemberDiff(session.user?.memberId, csvData, currentMembers);
+  const diff = calculateMemberDiff(
+    session.user?.memberId,
+    parseResult.data,
+    currentMembers
+  );
+
+  return { diff };
 }
 
 /**
- * Apply member changes from CSV import
- * Returns error if current user would be deleted
+ * Re-parse the CSV on the server and apply changes.
+ * The CSV is re-validated and the diff re-derived so the client
+ * cannot tamper with the diff payload.
  */
-export async function applyMemberChanges(
-  diff: MemberDiff
+export async function uploadAndApplyMemberChanges(
+  csvContent: string
 ): Promise<ApplyChangesResult> {
   const session = await requireAdmin();
 
-  const currentMemberId = session.user?.memberId;
+  if (csvContent.length > MAX_CSV_SIZE) {
+    return { success: false, error: "CSV file is too large (max 1MB)" };
+  }
 
-  // Safety check: do not allow deletion of current user
+  const parseResult = parseMembersFromCsv(csvContent);
+
+  if (!parseResult.success || !parseResult.data) {
+    const errorMsg = parseResult.errors
+      ?.map((e) => `Row ${e.row} (${e.field}): ${e.message}`)
+      .join("; ");
+    return { success: false, error: `Failed to parse CSV: ${errorMsg}` };
+  }
+
+  const currentMembers = await getMembersForAdmin();
+  const diff = calculateMemberDiff(
+    session.user?.memberId,
+    parseResult.data,
+    currentMembers
+  );
+
+  return applyDiff(session.user?.memberId, diff);
+}
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+
+async function deleteMembersByIds(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  memberIds: string[]
+) {
+  if (memberIds.length === 0) return;
+  await tx
+    .delete(adminUsersTable)
+    .where(inArray(adminUsersTable.memberId, memberIds));
+  await tx
+    .delete(userTable)
+    .where(inArray(userTable.memberId, memberIds));
+  await tx
+    .delete(membershipTable)
+    .where(inArray(membershipTable.memberId, memberIds));
+}
+
+async function applyDiff(
+  currentMemberId: string | undefined,
+  diff: MemberDiff
+): Promise<ApplyChangesResult> {
   const willDeleteCurrentUser = diff.toDelete.some(
     (m) => m.memberId === currentMemberId
   );
@@ -84,29 +148,15 @@ export async function applyMemberChanges(
   }
 
   try {
-    // Use transaction to ensure all-or-nothing
     await db.transaction(async (tx) => {
       // Delete members
-      for (const member of diff.toDelete) {
-        // Delete from admin_users
-        await tx
-          .delete(adminUsersTable)
-          .where(eq(adminUsersTable.memberId, member.memberId));
-
-        // Delete from user
-        await tx
-          .delete(userTable)
-          .where(eq(userTable.memberId, member.memberId));
-
-        // Delete from membership
-        await tx
-          .delete(membershipTable)
-          .where(eq(membershipTable.memberId, member.memberId));
-      }
+      await deleteMembersByIds(
+        tx,
+        diff.toDelete.map((m) => m.memberId)
+      );
 
       // Update members
       for (const { old, new: newData } of diff.toUpdate) {
-        // Update user
         await tx
           .update(userTable)
           .set({
@@ -116,7 +166,6 @@ export async function applyMemberChanges(
           })
           .where(eq(userTable.id, old.userId));
 
-        // Update membership
         await tx
           .update(membershipTable)
           .set({
@@ -125,14 +174,12 @@ export async function applyMemberChanges(
           })
           .where(eq(membershipTable.memberId, newData.memberId));
 
-        // Update or add admin_users
         if (newData.isAdmin) {
-          // Upsert: insert if not exists
-          await tx.insert(adminUsersTable).values({
-            memberId: newData.memberId,
-          }).onConflictDoNothing();
+          await tx
+            .insert(adminUsersTable)
+            .values({ memberId: newData.memberId })
+            .onConflictDoNothing();
         } else {
-          // Remove from admin_users if exists
           await tx
             .delete(adminUsersTable)
             .where(eq(adminUsersTable.memberId, newData.memberId));
@@ -141,7 +188,6 @@ export async function applyMemberChanges(
 
       // Add new members
       for (const member of diff.toAdd) {
-        // Create Better Auth user
         const newUserId = crypto.randomUUID();
         const now = new Date();
         await tx.insert(userTable).values({
@@ -156,14 +202,12 @@ export async function applyMemberChanges(
           banned: false,
         });
 
-        // Create membership
         await tx.insert(membershipTable).values({
           memberId: member.memberId,
           email: member.email,
           membership: member.membership,
         });
 
-        // Add to admin_users if needed
         if (member.isAdmin) {
           await tx.insert(adminUsersTable).values({
             memberId: member.memberId,
@@ -186,6 +230,10 @@ export async function applyMemberChanges(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Single-member actions
+// ---------------------------------------------------------------------------
+
 /**
  * Update a single member from edit dialog
  */
@@ -197,7 +245,6 @@ export async function updateSingleMember(
 
   try {
     await db.transaction(async (tx) => {
-      // Get current user to find their ID
       const currentUser = await tx
         .select()
         .from(userTable)
@@ -228,7 +275,8 @@ export async function updateSingleMember(
       // Update membership table
       const membershipUpdates: Record<string, string> = {};
       if (updates.email !== undefined) membershipUpdates.email = updates.email;
-      if (updates.membership !== undefined) membershipUpdates.membership = updates.membership;
+      if (updates.membership !== undefined)
+        membershipUpdates.membership = updates.membership;
       if (Object.keys(membershipUpdates).length > 0) {
         await tx
           .update(membershipTable)
@@ -239,7 +287,10 @@ export async function updateSingleMember(
       // Update admin status
       if (updates.isAdmin !== undefined) {
         if (updates.isAdmin) {
-          await tx.insert(adminUsersTable).values({ memberId }).onConflictDoNothing();
+          await tx
+            .insert(adminUsersTable)
+            .values({ memberId })
+            .onConflictDoNothing();
         } else {
           await tx
             .delete(adminUsersTable)
@@ -253,21 +304,20 @@ export async function updateSingleMember(
     console.error("Failed to update member:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update member",
+      error:
+        error instanceof Error ? error.message : "Failed to update member",
     };
   }
 }
 
 /**
  * Delete a single member
- * Cannot delete the current user
  */
 export async function deleteSingleMember(
   memberId: string
 ): Promise<ApplyChangesResult> {
   const session = await requireAdmin();
 
-  // Safety check: cannot delete current user
   if (memberId === session.user?.memberId) {
     return {
       success: false,
@@ -277,20 +327,7 @@ export async function deleteSingleMember(
 
   try {
     await db.transaction(async (tx) => {
-      // Delete from admin_users
-      await tx
-        .delete(adminUsersTable)
-        .where(eq(adminUsersTable.memberId, memberId));
-
-      // Delete from user
-      await tx
-        .delete(userTable)
-        .where(eq(userTable.memberId, memberId));
-
-      // Delete from membership
-      await tx
-        .delete(membershipTable)
-        .where(eq(membershipTable.memberId, memberId));
+      await deleteMembersByIds(tx, [memberId]);
     });
 
     return { success: true, message: "Member deleted successfully" };
@@ -300,6 +337,79 @@ export async function deleteSingleMember(
       success: false,
       error:
         error instanceof Error ? error.message : "Failed to delete member",
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bulk actions
+// ---------------------------------------------------------------------------
+
+/**
+ * Delete multiple members in a single transaction.
+ * Filters out the current user for safety.
+ */
+export async function bulkDeleteMembers(
+  memberIds: string[]
+): Promise<ApplyChangesResult> {
+  const session = await requireAdmin();
+
+  const safeIds = memberIds.filter((id) => id !== session.user?.memberId);
+  if (safeIds.length === 0) {
+    return { success: false, error: "No members to delete" };
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      await deleteMembersByIds(tx, safeIds);
+    });
+
+    return {
+      success: true,
+      message: `Deleted ${safeIds.length} member${safeIds.length > 1 ? "s" : ""}`,
+    };
+  } catch (error) {
+    console.error("Failed to bulk delete members:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to delete members",
+    };
+  }
+}
+
+/**
+ * Make multiple members admin in a single transaction.
+ */
+export async function bulkMakeAdmin(
+  memberIds: string[]
+): Promise<ApplyChangesResult> {
+  await requireAdmin();
+
+  if (memberIds.length === 0) {
+    return { success: false, error: "No members selected" };
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      for (const memberId of memberIds) {
+        await tx
+          .insert(adminUsersTable)
+          .values({ memberId })
+          .onConflictDoNothing();
+      }
+    });
+
+    return {
+      success: true,
+      message: `Made ${memberIds.length} member${memberIds.length > 1 ? "s" : ""} admin`,
+    };
+  } catch (error) {
+    console.error("Failed to bulk make admin:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to update members",
     };
   }
 }

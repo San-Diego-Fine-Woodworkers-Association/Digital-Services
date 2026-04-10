@@ -6,9 +6,10 @@ import { Upload, Trash2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { DbMember } from "@/lib/types/members";
 import {
-  updateSingleMember,
   deleteSingleMember,
   getMembersForAdmin,
+  bulkDeleteMembers,
+  bulkMakeAdmin,
 } from "@/lib/actions/members";
 import { MembersTable } from "./members-table";
 import { MembersEditDialog } from "./members-edit-dialog";
@@ -35,7 +36,9 @@ export function MembersPageClient({
 
   const handleMemberUpdated = (updatedMember: DbMember) => {
     setMembers((prev) =>
-      prev.map((m) => (m.memberId === updatedMember.memberId ? updatedMember : m))
+      prev.map((m) =>
+        m.memberId === updatedMember.memberId ? updatedMember : m
+      )
     );
     setEditingMemberId(null);
   };
@@ -68,7 +71,6 @@ export function MembersPageClient({
 
   const handleToggleSelectAll = (checked: boolean) => {
     if (checked) {
-      // Only select members that aren't the current user
       const selectableMembers = members
         .filter((m) => m.memberId !== currentUserMemberId)
         .map((m) => m.memberId);
@@ -90,31 +92,16 @@ export function MembersPageClient({
 
     setIsBulkLoading(true);
     try {
-      let successCount = 0;
-      let errorCount = 0;
+      const result = await bulkDeleteMembers(Array.from(selectedMemberIds));
 
-      for (const memberId of selectedMemberIds) {
-        const result = await deleteSingleMember(memberId);
-        if (result.success) {
-          successCount++;
-        } else {
-          errorCount++;
-        }
-      }
-
-      // Refresh members list
       const updatedMembers = await getMembersForAdmin();
       setMembers(updatedMembers);
       setSelectedMemberIds(new Set());
 
-      if (errorCount === 0) {
-        toast.success(
-          `Deleted ${successCount} member${successCount > 1 ? "s" : ""}`
-        );
+      if (result.success) {
+        toast.success(result.message);
       } else {
-        toast.error(
-          `Deleted ${successCount}, failed to delete ${errorCount} member${errorCount > 1 ? "s" : ""}`
-        );
+        toast.error(result.error || "Failed to delete members");
       }
     } catch (error) {
       toast.error(
@@ -126,40 +113,23 @@ export function MembersPageClient({
   };
 
   const handleBulkMakeAdmin = async () => {
-    const selectedCount = selectedMemberIds.size;
-
     setIsBulkLoading(true);
     try {
-      let successCount = 0;
-      let errorCount = 0;
+      const nonAdminIds = Array.from(selectedMemberIds).filter((id) => {
+        const member = members.find((m) => m.memberId === id);
+        return member && !member.isAdmin;
+      });
 
-      for (const memberId of selectedMemberIds) {
-        const member = members.find((m) => m.memberId === memberId);
-        if (member && !member.isAdmin) {
-          const result = await updateSingleMember(memberId, {
-            isAdmin: true,
-          });
-          if (result.success) {
-            successCount++;
-          } else {
-            errorCount++;
-          }
-        }
-      }
+      const result = await bulkMakeAdmin(nonAdminIds);
 
-      // Refresh members list
       const updatedMembers = await getMembersForAdmin();
       setMembers(updatedMembers);
       setSelectedMemberIds(new Set());
 
-      if (errorCount === 0) {
-        toast.success(
-          `Made ${successCount} member${successCount > 1 ? "s" : ""} admin`
-        );
+      if (result.success) {
+        toast.success(result.message);
       } else {
-        toast.error(
-          `Made ${successCount} admin, failed for ${errorCount} member${errorCount > 1 ? "s" : ""}`
-        );
+        toast.error(result.error || "Failed to update members");
       }
     } catch (error) {
       toast.error(
@@ -245,7 +215,6 @@ export function MembersPageClient({
           isOpen={showImportDialog}
           onOpenChange={setShowImportDialog}
           onImportCompleted={handleImportCompleted}
-          currentMembers={members}
         />
       )}
     </div>

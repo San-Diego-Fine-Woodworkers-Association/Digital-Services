@@ -7,17 +7,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@sdfwa/ui/components/dialog";
-import { DbMember, MemberData, MemberDiff } from "@/lib/types/members";
+import { DbMember, MemberDiff } from "@/lib/types/members";
 import { ImportStepUpload } from "./import-step-upload";
 import { ImportStepReview } from "./import-step-review";
 import { ImportStepSuccess } from "./import-step-success";
 import {
-  calculateMemberChanges,
-  applyMemberChanges,
+  uploadAndCalculateMemberChanges,
+  uploadAndApplyMemberChanges,
   getMembersForAdmin,
 } from "@/lib/actions/members";
-import { parseMembersFromCsv } from "@/lib/utils/members";
-import { toast } from "sonner";
 
 type Step = "upload" | "review" | "success" | "error";
 
@@ -25,39 +23,31 @@ export function MembersImportDialog({
   isOpen,
   onOpenChange,
   onImportCompleted,
-  currentMembers,
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onImportCompleted: (members: DbMember[]) => void;
-  currentMembers: DbMember[];
 }) {
   const [step, setStep] = useState<Step>("upload");
-  const [csvData, setCsvData] = useState<MemberData[] | null>(null);
+  const [csvContent, setCsvContent] = useState<string | null>(null);
   const [diff, setDiff] = useState<MemberDiff | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleFileSelected = async (csvContent: string) => {
+  const handleFileSelected = async (content: string) => {
     setIsLoading(true);
     try {
-      const result = parseMembersFromCsv(csvContent);
+      setCsvContent(content);
 
-      if (!result.success || !result.data) {
-        setErrorMessage(
-          `Failed to parse CSV: ${result.errors
-            ?.map((e) => `Row ${e.row} (${e.field}): ${e.message}`)
-            .join("; ")}`
-        );
+      const result = await uploadAndCalculateMemberChanges(content);
+
+      if ("error" in result) {
+        setErrorMessage(result.error);
         setStep("error");
         return;
       }
 
-      setCsvData(result.data);
-
-      // Calculate diff
-      const diffResult = await calculateMemberChanges(result.data);
-      setDiff(diffResult);
+      setDiff(result.diff);
       setStep("review");
     } catch (error) {
       setErrorMessage(
@@ -70,11 +60,12 @@ export function MembersImportDialog({
   };
 
   const handleConfirmChanges = async () => {
-    if (!diff) return;
+    if (!csvContent) return;
 
     setIsLoading(true);
     try {
-      const result = await applyMemberChanges(diff);
+      // Re-send the CSV to the server for re-validation and application
+      const result = await uploadAndApplyMemberChanges(csvContent);
 
       if (!result.success) {
         setErrorMessage(result.error || "Failed to apply changes");
@@ -82,7 +73,6 @@ export function MembersImportDialog({
         return;
       }
 
-      // Fetch updated members
       const updatedMembers = await getMembersForAdmin();
       onImportCompleted(updatedMembers);
       setStep("success");
@@ -98,14 +88,12 @@ export function MembersImportDialog({
 
   const handleClose = () => {
     if (step === "success") {
-      // Reset state and close
       setStep("upload");
-      setCsvData(null);
+      setCsvContent(null);
       setDiff(null);
       setErrorMessage(null);
       onOpenChange(false);
     } else if (!isLoading) {
-      // Allow closing if not loading
       onOpenChange(false);
     }
   };
@@ -134,10 +122,7 @@ export function MembersImportDialog({
         )}
 
         {step === "success" && (
-          <ImportStepSuccess
-            diff={diff}
-            onClose={() => handleClose()}
-          />
+          <ImportStepSuccess diff={diff} onClose={() => handleClose()} />
         )}
 
         {step === "error" && (

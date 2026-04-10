@@ -1,131 +1,95 @@
 /**
  * Database seed script
- * Creates initial test data including Better Auth users for members
+ *
+ * Reads members from data/members.csv (or a path passed as CLI arg),
+ * then upserts Better Auth users, membership records, and admin flags.
+ *
+ * Usage:
+ *   bun seed                         # uses data/members.csv
+ *   bun seed ./path/to/members.csv   # uses a custom CSV
  */
 
+import { readFileSync } from "fs";
+import { resolve } from "path";
 import { db } from "@/lib/db";
 import { user as userTable } from "@/lib/db/auth-schema";
 import { membershipTable, adminUsersTable } from "@/lib/db/schema";
+import { parseMembersFromCsv } from "@/lib/utils/members";
 
 async function seed() {
-  try {
-    console.log("🌱 Starting database seed...");
+  const csvPath = resolve(process.argv[2] || "./data/members.csv");
+  console.log(`Reading members from: ${csvPath}`);
 
-    // Test members to create
-    const testMembers = [
-      {
-        memberId: "M001",
-        name: "Alice Johnson",
-        email: "alice@example.com",
-        membership: "volunteer",
-        address: "123 Main St, Portland, OR",
-        isAdmin: false,
-      },
-      {
-        memberId: "M002",
-        name: "Bob Smith",
-        email: "bob@example.com",
-        membership: "volunteer",
-        address: "456 Oak Ave, Portland, OR",
-        isAdmin: false,
-      },
-      {
-        memberId: "M003",
-        name: "Carol Davis",
-        email: "carol@example.com",
-        membership: "volunteer",
-        address: "789 Pine Rd, Portland, OR",
-        isAdmin: false,
-      },
-      {
-        memberId: "M004",
-        name: "David Wilson",
-        email: "david@example.com",
-        membership: "volunteer",
-        address: "321 Elm St, Portland, OR",
-        isAdmin: false,
-      },
-      {
-        memberId: "M005",
-        name: "admin",
-        email: "admin@sdfwa.org",
-        membership: "volunteer",
-        address: "100 Admin St, Portland, OR",
-        isAdmin: true,
-      },
-    ];
+  const raw = readFileSync(csvPath, "utf-8");
+  const result = parseMembersFromCsv(raw);
 
-    // Create users and membership records
-    for (const member of testMembers) {
-      const userId = `user_${member.memberId}`;
-      const now = new Date();
-
-      // Check if user already exists
-      const existingUser = await db.query.user.findFirst({
-        where: (users, { eq }) => eq(users.email, member.email),
-      });
-
-      if (!existingUser) {
-        // Create Better Auth user
-        await db.insert(userTable).values({
-          id: userId,
-          name: member.name,
-          email: member.email,
-          emailVerified: false,
-          memberId: member.memberId,
-          address: member.address,
-          createdAt: now,
-          updatedAt: now,
-          banned: false,
-        });
-        console.log(`✓ Created user: ${member.name} (${member.email})`);
-      } else {
-        console.log(
-          `⊘ User already exists: ${member.name} (${member.email})`
-        );
-      }
-
-      // Check if membership already exists
-      const existingMembership = await db.query.membershipTable.findFirst({
-        where: (memberships, { eq }) =>
-          eq(memberships.memberId, member.memberId),
-      });
-
-      if (!existingMembership) {
-        // Create membership
-        await db.insert(membershipTable).values({
-          memberId: member.memberId,
-          email: member.email,
-          membership: member.membership,
-        });
-        console.log(`✓ Created membership: ${member.memberId}`);
-      } else {
-        console.log(`⊘ Membership already exists: ${member.memberId}`);
-      }
-
-      // Add to admin_users if needed
-      if (member.isAdmin) {
-        const existingAdmin = await db.query.adminUsersTable.findFirst({
-          where: (admins, { eq }) =>
-            eq(admins.memberId, member.memberId),
-        });
-
-        if (!existingAdmin) {
-          await db.insert(adminUsersTable).values({
-            memberId: member.memberId,
-          });
-          console.log(`✓ Created admin user: ${member.memberId}`);
-        } else {
-          console.log(`⊘ Admin user already exists: ${member.memberId}`);
-        }
-      }
+  if (!result.success || !result.data) {
+    console.error("Failed to parse CSV:");
+    for (const err of result.errors ?? []) {
+      console.error(`  Row ${err.row} (${err.field}): ${err.message}`);
     }
-
-    console.log("✅ Seed completed successfully!");
-  } catch (error) {
-    console.error("❌ Seed failed:", error);
     process.exit(1);
   }
+
+  console.log(`Parsed ${result.data.length} members, upserting...`);
+
+  for (const member of result.data) {
+    const now = new Date();
+
+    // Upsert Better Auth user
+    await db
+      .insert(userTable)
+      .values({
+        id: crypto.randomUUID(),
+        name: member.name,
+        email: member.email,
+        emailVerified: false,
+        memberId: member.memberId,
+        address: member.address,
+        createdAt: now,
+        updatedAt: now,
+        banned: false,
+      })
+      .onConflictDoUpdate({
+        target: userTable.memberId,
+        set: {
+          name: member.name,
+          email: member.email,
+          address: member.address,
+          updatedAt: now,
+        },
+      });
+
+    // Upsert membership
+    await db
+      .insert(membershipTable)
+      .values({
+        memberId: member.memberId,
+        email: member.email,
+        membership: member.membership,
+      })
+      .onConflictDoUpdate({
+        target: membershipTable.memberId,
+        set: { email: member.email, membership: member.membership },
+      });
+
+    // Handle admin flag
+    if (member.isAdmin) {
+      await db
+        .insert(adminUsersTable)
+        .values({ memberId: member.memberId })
+        .onConflictDoNothing();
+      console.log(`  ${member.memberId} ${member.name} (admin)`);
+    } else {
+      console.log(`  ${member.memberId} ${member.name}`);
+    }
+  }
+
+  console.log("Seed complete.");
+  process.exit(0);
 }
 
-seed();
+seed().catch((err) => {
+  console.error("Seed failed:", err);
+  process.exit(1);
+});
