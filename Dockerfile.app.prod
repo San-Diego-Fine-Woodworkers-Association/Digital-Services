@@ -35,6 +35,7 @@ ENV APP_PATH="apps/${APP_NAME_ENV}"
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 app
+USER app
 
 # Copy the standalone build
 COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/.next/standalone ./
@@ -42,24 +43,8 @@ COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/.next/standalone ./
 COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/.next/static ./${APP_PATH}/.next/static
 COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/public ./${APP_PATH}/public
 
-# Copy migration SQL files and config needed by drizzle-kit migrate
-COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/drizzle/ ./${APP_PATH}/drizzle/
-COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/drizzle.config.ts ./${APP_PATH}/drizzle.config.ts
-
-RUN cat <<EOF > /app/start.sh
-#!/bin/sh
-set -e
-cd ${APP_PATH}
-bunx drizzle-kit migrate
-node server.js
-EOF
-
-RUN chmod +x /app/start.sh
-
-USER app
-
 EXPOSE $PORT
-ENV PORT=$PORT
+ENV PORT $PORT
 
-ENV HOSTNAME="0.0.0.0"
-CMD ["/app/start.sh"]
+ENV HOSTNAME "0.0.0.0"
+CMD node apps/${APP_NAME_ENV}/server.js
