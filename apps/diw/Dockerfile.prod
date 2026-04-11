@@ -19,12 +19,15 @@ RUN bun x turbo prune $APP_NAME --docker
 
 # ---
 FROM base AS builder
+ARG APP_NAME="diw"
 # First install the dependencies (as they change less often)
 COPY --from=prepare /app/out/json/ .
 RUN bun install --frozen-lockfile
 # Build the project
 COPY --from=prepare /app/out/full/ .
 RUN bun turbo build
+# Compile the start script (runs migrations then starts the server) to plain JS
+RUN bun build apps/$APP_NAME/scripts/start.ts --outdir /app/start-dist --target node
 
 # ---
 FROM base AS runner
@@ -42,9 +45,12 @@ COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/.next/standalone ./
 # Copy static files into the mirrored structure inside standalone
 COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/.next/static ./${APP_PATH}/.next/static
 COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/public ./${APP_PATH}/public
+# Copy the compiled start script and migration files
+COPY --from=builder --chown=app:nodejs /app/start-dist/start.js ./start.js
+COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/drizzle ./drizzle
 
 EXPOSE $PORT
 ENV PORT $PORT
 
 ENV HOSTNAME "0.0.0.0"
-CMD node apps/${APP_NAME_ENV}/server.js
+CMD node start.js

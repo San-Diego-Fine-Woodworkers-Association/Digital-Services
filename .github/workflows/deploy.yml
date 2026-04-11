@@ -80,11 +80,20 @@ jobs:
             org.opencontainers.image.version=${{ env.VERSION }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
+      - name: Determine Dockerfile
+        id: dockerfile
+        run: |
+          if [ -f "apps/${{ matrix.app_name }}/Dockerfile.prod" ]; then
+            echo "path=apps/${{ matrix.app_name }}/Dockerfile.prod" >> $GITHUB_OUTPUT
+          else
+            echo "path=Dockerfile.app.prod" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and Push
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile.app.prod
+          file: ${{ steps.dockerfile.outputs.path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
