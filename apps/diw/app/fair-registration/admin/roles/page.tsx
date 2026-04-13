@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import { getActiveFair, getRolesWithSlots } from "@/lib/actions/fair";
 import { AdminLayoutClient } from "../admin-layout-client";
 import { RolesListClient } from "./roles-list-client";

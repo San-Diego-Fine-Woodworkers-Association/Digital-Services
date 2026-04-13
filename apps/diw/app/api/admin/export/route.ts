@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/auth/get-session";
 import { getActiveFair } from "@/lib/actions/fair";
-import { getAllRegistrations } from "@/lib/actions/admin";
+import { getAllRegistrations } from "@/lib/queries/admin";
 
 function formatTime(d: Date | string) {
 	return new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });

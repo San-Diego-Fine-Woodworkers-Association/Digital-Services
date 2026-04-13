@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import { getMembersForAdmin } from "@/lib/actions/members";
 import { getServerSession } from "@/lib/auth/get-session";
 import { AdminLayoutClient } from "../admin-layout-client";

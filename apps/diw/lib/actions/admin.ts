@@ -1,7 +1,7 @@
 "use server";
 
 import { eq, and, notInArray, inArray } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { db, fairDetailsTable, rolesTable, slotsTable, registrationsTable } from "../db";
 import { requireAdmin } from "../auth/get-session";
 
@@ -10,7 +10,7 @@ import { requireAdmin } from "../auth/get-session";
 export async function createFair(data: { name: string; startDate: string; endDate: string; closedDates?: string[] }) {
 	await requireAdmin();
 	await db.insert(fairDetailsTable).values({ ...data, closedDates: data.closedDates ?? [] });
-	revalidatePath("/fair-registration/admin");
+	updateTag("fair");
 }
 
 export async function updateFair(
@@ -67,8 +67,9 @@ export async function updateFair(
 	}
 
 	await db.update(fairDetailsTable).set(data).where(eq(fairDetailsTable.id, fairId));
-	revalidatePath("/fair-registration/admin");
-	revalidatePath("/fair-registration");
+	updateTag("fair");
+	updateTag("roles");
+	updateTag("registrations");
 }
 
 // Role actions
@@ -76,14 +77,14 @@ export async function updateFair(
 export async function createRoleForFair(fairId: string, data: { name: string; numberOfVolunteers: number }) {
 	await requireAdmin();
 	const result = await db.insert(rolesTable).values({ ...data, fairId }).returning({ id: rolesTable.id });
-	revalidatePath("/fair-registration/admin/roles");
+	updateTag("roles");
 	return result[0];
 }
 
 export async function updateRole(roleId: string, data: { name?: string; numberOfVolunteers?: number }) {
 	await requireAdmin();
 	await db.update(rolesTable).set(data).where(eq(rolesTable.id, roleId));
-	revalidatePath("/fair-registration/admin/roles");
+	updateTag("roles");
 }
 
 export async function deleteRole(roleId: string) {
@@ -97,7 +98,8 @@ export async function deleteRole(roleId: string) {
 	}
 	await db.delete(slotsTable).where(eq(slotsTable.roleId, roleId));
 	await db.delete(rolesTable).where(eq(rolesTable.id, roleId));
-	revalidatePath("/fair-registration/admin/roles");
+	updateTag("roles");
+	updateTag("registrations");
 }
 
 // Slot actions
@@ -130,7 +132,7 @@ export async function generateSlots(
 		await db.insert(slotsTable).values(slots);
 	}
 
-	revalidatePath("/fair-registration/admin/roles");
+	updateTag("roles");
 	return { count: slots.length };
 }
 
@@ -146,72 +148,21 @@ export async function addSlot(
 		endTime: new Date(`${data.date}T${data.endTime}`),
 		numberOfVolunteers: data.numberOfVolunteers,
 	});
-	revalidatePath("/fair-registration/admin/roles");
+	updateTag("roles");
 }
 
 export async function deleteSlot(slotId: string) {
 	await requireAdmin();
 	await db.delete(registrationsTable).where(eq(registrationsTable.slotId, slotId));
 	await db.delete(slotsTable).where(eq(slotsTable.id, slotId));
-	revalidatePath("/fair-registration/admin/roles");
+	updateTag("roles");
+	updateTag("registrations");
 }
 
 // Registration actions (admin)
 
-export async function getAllRegistrations(fairId: string) {
-	await requireAdmin();
-	const roles = await db.query.rolesTable.findMany({
-		where: eq(rolesTable.fairId, fairId),
-		with: {
-			slots: {
-				with: {
-					registrations: {
-						with: {
-							user: true,
-						},
-					},
-				},
-			},
-		},
-	});
-
-	const flat: {
-		registrationId: string;
-		date: string;
-		roleName: string;
-		startTime: Date;
-		endTime: Date;
-		volunteerName: string;
-		volunteerEmail: string;
-		memberId: string;
-	}[] = [];
-
-	for (const role of roles) {
-		for (const slot of role.slots) {
-			for (const reg of slot.registrations) {
-				flat.push({
-					registrationId: reg.id,
-					date: slot.date,
-					roleName: role.name,
-					startTime: slot.startTime,
-					endTime: slot.endTime,
-					volunteerName: reg.user.name,
-					volunteerEmail: reg.user.email,
-					memberId: reg.user.id,
-				});
-			}
-		}
-	}
-
-	return flat.sort((a, b) => {
-		const dateCompare = new Date(a.date).getTime() - new Date(b.date).getTime();
-		if (dateCompare !== 0) return dateCompare;
-		return a.startTime.getTime() - b.startTime.getTime();
-	});
-}
-
 export async function adminDeleteRegistration(registrationId: string) {
 	await requireAdmin();
 	await db.delete(registrationsTable).where(eq(registrationsTable.id, registrationId));
-	revalidatePath("/fair-registration/admin/registrations");
+	updateTag("registrations");
 }

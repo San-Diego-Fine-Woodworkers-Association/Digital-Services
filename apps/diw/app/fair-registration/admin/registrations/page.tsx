@@ -1,7 +1,5 @@
-export const dynamic = "force-dynamic";
-
 import { getActiveFair } from "@/lib/actions/fair";
-import { getAllRegistrations } from "@/lib/actions/admin";
+import { getAllRegistrations } from "@/lib/queries/admin";
 import { RegistrationsClient } from "./registrations-client";
 
 export default async function RegistrationsPage() {

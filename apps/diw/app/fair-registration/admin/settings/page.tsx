@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import { getActiveFair } from "@/lib/actions/fair";
 import { FairSettingsClient } from "./fair-settings-client";
 import { Metadata } from "next";

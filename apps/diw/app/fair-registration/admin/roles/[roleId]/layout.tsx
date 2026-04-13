@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getRoleById } from "@/lib/actions/fair-registration";
+import { getRoleById } from "@/lib/queries/admin";
 import { AdminLayoutClient } from "../../admin-layout-client";
 
 export default async function RoleDetailLayout({

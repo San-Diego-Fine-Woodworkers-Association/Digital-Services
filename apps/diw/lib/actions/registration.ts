@@ -1,9 +1,9 @@
 "use server";
 
-import { and, eq, ne } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { eq } from "drizzle-orm";
+import { updateTag } from "next/cache";
 import { db, registrationsTable, slotsTable } from "../db";
-import { getServerSession, requireAuth } from "../auth/get-session";
+import { getServerSession } from "../auth/get-session";
 
 async function getUserRegistrations(userId: string) {
 	return await db.query.registrationsTable.findMany({
@@ -26,7 +26,7 @@ export async function registerForSlot(slotId: string): Promise<{ success: boolea
 
 	const userId = session.user.id;
 
-	return await db.transaction(async (tx) => {
+	const result = await db.transaction(async (tx) => {
 		// Get the target slot with current registrations
 		const slot = await tx.query.slotsTable.findFirst({
 			where: eq(slotsTable.id, slotId),
@@ -79,6 +79,13 @@ export async function registerForSlot(slotId: string): Promise<{ success: boolea
 
 		return { success: true };
 	});
+
+	if (result.success) {
+		updateTag("roles");
+		updateTag("registrations");
+	}
+
+	return result;
 }
 
 export async function cancelRegistration(registrationId: string): Promise<{ success: boolean; error?: string }> {
@@ -101,7 +108,8 @@ export async function cancelRegistration(registrationId: string): Promise<{ succ
 
 	await db.delete(registrationsTable).where(eq(registrationsTable.id, registrationId));
 
-	revalidatePath("/fair-registration");
+	updateTag("registrations");
+	updateTag("roles");
 	return { success: true };
 }
 

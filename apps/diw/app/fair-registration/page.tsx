@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import { getActiveFair, getRolesWithSlots } from "@/lib/actions/fair";
 import { getMyRegistrations } from "@/lib/actions/registration";
 import { getServerSession } from "@/lib/auth/get-session";

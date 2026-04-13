@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import Link from "next/link";
 import { Settings, Users, ClipboardList, CalendarDays, UserCog } from "lucide-react";
 import { getActiveFair, getRolesWithSlots } from "@/lib/actions/fair";

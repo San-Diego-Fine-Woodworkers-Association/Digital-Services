@@ -1,7 +1,5 @@
-export const dynamic = "force-dynamic";
-
 import { notFound } from "next/navigation";
-import { getRoleById } from "@/lib/actions/fair-registration";
+import { getRoleById } from "@/lib/queries/admin";
 import { getActiveFair } from "@/lib/actions/fair";
 import { RoleDetailClient } from "./role-detail-client";
 

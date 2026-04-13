@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from 'next/image'
 
@@ -21,28 +22,36 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 });
 
-export default async function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+async function AppShell({ children }: { children: React.ReactNode }) {
   const session = await getServerSession();
   const user = session?.user;
   const roles = (session as Record<string, unknown>)?.roles as string[] | undefined;
 
+  return (
+    <AppLayout
+      logo={<Logo><Image src="/images/full-logo.png" alt="SDFWA Logo" width={1090} height={746} /></Logo>}
+      navigation={<HeaderNav roles={roles} />}
+      actions={<HeaderActions user={user} />}
+    >
+      {children}
+    </AppLayout>
+  );
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased `}
       >
         <Providers>
-          <AppLayout
-            logo={<Logo><Image src="/images/full-logo.png" alt="SDFWA Logo" width={1090} height={746} /></Logo>}
-            navigation={<HeaderNav roles={roles} />}
-            actions={<HeaderActions user={user} />}
-          >
-            {children}
-          </AppLayout>
+          <Suspense>
+            <AppShell>{children}</AppShell>
+          </Suspense>
         </Providers>
       </body>
     </html>
