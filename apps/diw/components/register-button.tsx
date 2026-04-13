@@ -2,21 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarPlus } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@sdfwa/ui/components/button";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@sdfwa/ui/components/tooltip";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogDescription,
-	DialogFooter,
-} from "@sdfwa/ui/components/dialog";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -28,8 +20,7 @@ import {
 	AlertDialogAction,
 } from "@sdfwa/ui/components/alert-dialog";
 import { toast } from "@sdfwa/ui/components/sonner";
-import { registerForSlot, cancelRegistration } from "@/lib/actions/registration";
-import { getGoogleCalendarUrl, downloadIcsFile } from "@/lib/calendar-links";
+import { cancelRegistration } from "@/lib/actions/registration";
 
 interface RegisterButtonProps {
 	slotId: string;
@@ -42,6 +33,8 @@ interface RegisterButtonProps {
 	date: string;
 	startTime: Date | string;
 	endTime: Date | string;
+	isRegistering?: boolean;
+	onRegisterClick: () => void;
 }
 
 function formatTime(d: Date | string) {
@@ -67,43 +60,19 @@ export function RegisterButton({
 	date,
 	startTime,
 	endTime,
+	isRegistering = false,
+	onRegisterClick,
 }: RegisterButtonProps) {
 	const router = useRouter();
-	const [loading, setLoading] = useState(false);
-	const [confirmOpen, setConfirmOpen] = useState(false);
-	const [successOpen, setSuccessOpen] = useState(false);
+	const [cancelling, setCancelling] = useState(false);
 	const [cancelOpen, setCancelOpen] = useState(false);
 
-	const calendarEvent = {
-		title: `${roleName} — SDFWA Fair`,
-		date,
-		startTime,
-		endTime,
-		description: `Volunteer shift: ${roleName}`,
-	};
-
 	const slotLabel = `${roleName} on ${formatDate(date)}, ${formatTime(startTime)} – ${formatTime(endTime)}`;
-
-	async function handleRegister() {
-		setConfirmOpen(false);
-		setLoading(true);
-
-		const result = await registerForSlot(slotId);
-		if (!result.success) {
-			toast.error(result.error || "Registration failed.");
-		} else {
-			toast.success("Registered!");
-			setSuccessOpen(true);
-			router.refresh();
-		}
-
-		setLoading(false);
-	}
 
 	async function handleCancel() {
 		if (!registrationId) return;
 		setCancelOpen(false);
-		setLoading(true);
+		setCancelling(true);
 
 		const result = await cancelRegistration(registrationId);
 		if (!result.success) {
@@ -113,16 +82,15 @@ export function RegisterButton({
 			router.refresh();
 		}
 
-		setLoading(false);
+		setCancelling(false);
 	}
 
-	// Determine which button to show
 	let button: React.ReactNode;
 
 	if (isRegistered) {
 		button = (
-			<Button size="sm" variant="destructive" onClick={() => setCancelOpen(true)} disabled={loading}>
-				{loading ? "Cancelling..." : "Cancel"}
+			<Button size="sm" variant="destructive" onClick={() => setCancelOpen(true)} disabled={cancelling}>
+				{cancelling ? "Cancelling..." : "Cancel"}
 			</Button>
 		);
 	} else if (isFull) {
@@ -147,19 +115,17 @@ export function RegisterButton({
 			</Tooltip>
 		);
 	} else {
-		button = (
-			<Button
-				size="sm"
-				onClick={() => {
-					if (!isLoggedIn) {
-						router.push(`/fair-registration/login?redirect=/fair-registration`);
-						return;
-					}
-					setConfirmOpen(true);
-				}}
-				disabled={loading}
-			>
-				{loading ? "Registering..." : "Register"}
+		button = !isLoggedIn ? (
+			<Button size="sm" asChild>
+				<Link
+					href={`/fair-registration/login?redirect=${encodeURIComponent("/fair-registration?slot=" + slotId)}`}
+				>
+					Register
+				</Link>
+			</Button>
+		) : (
+			<Button size="sm" onClick={onRegisterClick} disabled={isRegistering}>
+				{isRegistering ? "Registering..." : "Register"}
 			</Button>
 		);
 	}
@@ -168,68 +134,13 @@ export function RegisterButton({
 		<>
 			{button}
 
-			{/* Confirm registration dialog */}
-			<Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-				<DialogContent showCloseButton={false}>
-					<DialogHeader>
-						<DialogTitle>Confirm Registration</DialogTitle>
-						<DialogDescription>
-							Sign up for <span className="font-medium text-foreground">{slotLabel}</span>?
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setConfirmOpen(false)}>
-							Go Back
-						</Button>
-						<Button onClick={handleRegister}>
-							Register
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-
-			{/* Success + add to calendar dialog */}
-			<Dialog open={successOpen} onOpenChange={setSuccessOpen}>
-				<DialogContent showCloseButton={false}>
-					<DialogHeader>
-						<DialogTitle>You&apos;re Registered!</DialogTitle>
-						<DialogDescription>
-							You&apos;re signed up for <span className="font-medium text-foreground">{slotLabel}</span>. Add it to your calendar so you don&apos;t forget.
-						</DialogDescription>
-					</DialogHeader>
-					<div className="flex flex-col gap-2">
-						<Button
-							variant="outline"
-							className="justify-start"
-							onClick={() => window.open(getGoogleCalendarUrl(calendarEvent), "_blank")}
-						>
-							<CalendarPlus className="size-4" />
-							Google Calendar
-						</Button>
-						<Button
-							variant="outline"
-							className="justify-start"
-							onClick={() => downloadIcsFile(calendarEvent)}
-						>
-							<CalendarPlus className="size-4" />
-							Apple Calendar (.ics)
-						</Button>
-					</div>
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setSuccessOpen(false)}>
-							Done
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-
-			{/* Cancel registration confirmation */}
 			<AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Cancel Registration</AlertDialogTitle>
 						<AlertDialogDescription>
-							You will be removed from {slotLabel}. Your spot will become available for other volunteers.
+							You will be removed from {slotLabel}. Your spot will become available for other
+							volunteers.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>

@@ -78,7 +78,7 @@ export default function LoginForm() {
 							<FieldLabel htmlFor="memberId">Member ID</FieldLabel>
 							<Input
 								id="memberId"
-								type="text"
+								type="password"
 								placeholder="Your SDFWA Member ID"
 								value={memberId}
 								onChange={(e) => setMemberId(e.target.value)}

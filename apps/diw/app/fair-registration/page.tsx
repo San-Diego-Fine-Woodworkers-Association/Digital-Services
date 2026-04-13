@@ -5,7 +5,12 @@ import { getMyRegistrations } from "@/lib/actions/registration";
 import { getServerSession } from "@/lib/auth/get-session";
 import { FairRegistrationClient } from "./fair-registration-client";
 
-export default async function Page() {
+export default async function Page({
+	searchParams,
+}: {
+	searchParams: Promise<{ slot?: string }>;
+}) {
+	const { slot: initialSlotId } = await searchParams;
 	const fair = await getActiveFair();
 
 	if (!fair) {
@@ -33,6 +38,7 @@ export default async function Page() {
 			fairStartDate={fair.startDate}
 			fairEndDate={fair.endDate}
 			fairClosedDates={fair.closedDates}
+			initialSlotId={initialSlotId}
 		/>
 	);
 }
