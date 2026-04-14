@@ -37,7 +37,7 @@ export function MembersTable({
     selectedMemberIds.size < selectableMembers.length;
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="rounded-lg border bg-card overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -53,13 +53,15 @@ export function MembersTable({
             <TableHead>Email</TableHead>
             <TableHead>Membership</TableHead>
             <TableHead>Address</TableHead>
+            <TableHead>Phone</TableHead>
             <TableHead className="w-12 text-right">Admin</TableHead>
+            <TableHead className="w-16 text-right">Verified</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {members.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-8">
+              <TableCell colSpan={9} className="text-center py-8">
                 <p className="text-muted-foreground">No members found</p>
               </TableCell>
             </TableRow>
@@ -108,9 +110,22 @@ export function MembersTable({
                 >
                   {member.address}
                 </TableCell>
+                <TableCell
+                  onClick={() => onRowClick(member.memberId)}
+                  className="text-sm text-muted-foreground"
+                >
+                  {member.phone || "—"}
+                </TableCell>
                 <TableCell className="text-center text-right">
                   {member.isAdmin ? (
                     <span className="inline-block w-2 h-2 bg-blue-500 rounded-full" />
+                  ) : (
+                    <span className="inline-block w-2 h-2 bg-gray-300 rounded-full" />
+                  )}
+                </TableCell>
+                <TableCell className="text-center text-right">
+                  {member.contactValidated ? (
+                    <span className="inline-block w-2 h-2 bg-green-500 rounded-full" />
                   ) : (
                     <span className="inline-block w-2 h-2 bg-gray-300 rounded-full" />
                   )}

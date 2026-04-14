@@ -1,6 +1,6 @@
 import { cacheTag, cacheLife } from "next/cache";
 import { eq } from "drizzle-orm";
-import { db, rolesTable } from "../db";
+import { db, rolesTable, userSettingsTable } from "../db";
 
 export async function getRoleById(roleId: string) {
   "use cache";
@@ -19,20 +19,30 @@ export async function getAllRegistrations(fairId: string) {
   cacheTag("registrations");
   cacheLife("minutes");
 
-  const roles = await db.query.rolesTable.findMany({
-    where: eq(rolesTable.fairId, fairId),
-    with: {
-      slots: {
-        with: {
-          registrations: {
-            with: {
-              user: true,
+  const [roles, settings] = await Promise.all([
+    db.query.rolesTable.findMany({
+      where: eq(rolesTable.fairId, fairId),
+      with: {
+        slots: {
+          with: {
+            registrations: {
+              with: {
+                user: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    }),
+    db.query.userSettingsTable.findMany({
+      where: (us, { eq, and }) => and(
+        eq(us.fairId, fairId),
+        eq(us.contactValidated, true)
+      ),
+    }),
+  ]);
+
+  const validatedMemberIds = new Set(settings.map((s) => s.memberId));
 
   const flat: {
     registrationId: string;
@@ -43,6 +53,7 @@ export async function getAllRegistrations(fairId: string) {
     volunteerName: string;
     volunteerEmail: string;
     memberId: string;
+    contactValidated: boolean;
   }[] = [];
 
   for (const role of roles) {
@@ -57,6 +68,7 @@ export async function getAllRegistrations(fairId: string) {
           volunteerName: reg.user.name,
           volunteerEmail: reg.user.email,
           memberId: reg.user.id,
+          contactValidated: reg.user.memberId ? validatedMemberIds.has(reg.user.memberId) : false,
         });
       }
     }

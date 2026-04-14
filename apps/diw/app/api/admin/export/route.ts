@@ -27,7 +27,7 @@ export async function GET() {
 
 	const registrations = await getAllRegistrations(fair.id);
 
-	const headers = ["Date", "Role Name", "Slot", "Volunteer Name", "Volunteer Email", "Member ID"];
+	const headers = ["Date", "Role Name", "Slot", "Volunteer Name", "Volunteer Email", "Member ID", "Contact Verified"];
 	const rows = registrations.map((reg) => [
 		reg.date,
 		reg.roleName,
@@ -35,6 +35,7 @@ export async function GET() {
 		reg.volunteerName,
 		reg.volunteerEmail,
 		reg.memberId,
+		reg.contactValidated ? "Yes" : "No",
 	]);
 
 	const csv = [

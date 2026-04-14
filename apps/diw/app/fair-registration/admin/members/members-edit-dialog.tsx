@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import { DbMember, MemberData } from "@/lib/types/members";
 import {
   deleteSingleMember,
-  getMembersForAdmin,
   updateSingleMember,
 } from "@/lib/actions/members";
 
@@ -40,6 +39,7 @@ export function MembersEditDialog({
     email: member.email,
     membership: member.membership,
     address: member.address,
+    phone: member.phone,
     isAdmin: member.isAdmin,
   });
 
@@ -63,16 +63,17 @@ export function MembersEditDialog({
         return;
       }
 
-      // Fetch updated member data
-      const allMembers = await getMembersForAdmin();
-      const updatedMember = allMembers.find(
-        (m) => m.memberId === member.memberId
-      );
-
-      if (updatedMember) {
-        onMemberUpdated(updatedMember);
-        toast.success("Member updated successfully");
-      }
+      const updatedMember: DbMember = {
+        ...member,
+        name: formData.name ?? member.name,
+        email: formData.email ?? member.email,
+        membership: formData.membership ?? member.membership,
+        address: formData.address ?? member.address,
+        phone: formData.phone ?? member.phone,
+        isAdmin: formData.isAdmin ?? member.isAdmin,
+      };
+      onMemberUpdated(updatedMember);
+      toast.success("Member updated successfully");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to update member"
@@ -177,6 +178,19 @@ export function MembersEditDialog({
               value={formData.address || ""}
               onChange={(e) => handleInputChange("address", e.target.value)}
               placeholder="Street address"
+              className="mt-1"
+              disabled={isLoading || isDeleting}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={formData.phone || ""}
+              onChange={(e) => handleInputChange("phone", e.target.value)}
+              placeholder="(555) 555-5555"
               className="mt-1"
               disabled={isLoading || isDeleting}
             />

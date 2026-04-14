@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { date, integer, json, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, integer, json, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
 
@@ -45,6 +45,12 @@ export const registrationsTable = pgTable("registrations", {
 	userId: text().notNull().references(() => user.id)
 });
 
+export const userSettingsTable = pgTable("user_settings", {
+	memberId: text().primaryKey().references(() => user.memberId, { onDelete: "cascade" }),
+	fairId: uuid().references(() => fairDetailsTable.id, { onDelete: "set null" }),
+	contactValidated: boolean().notNull().default(false),
+});
+
 export const fairDetailsRelations = relations(fairDetailsTable, ({ many }) => ({
 	roles: many(rolesTable)
 }));
@@ -78,4 +84,11 @@ export const registrationRelations = relations(registrationsTable, ({ one }) => 
 
 export const userSlotRelations = relations(user, ({ many }) => ({
 	registrations: many(registrationsTable)
+}));
+
+export const userSettingsRelations = relations(userSettingsTable, ({ one }) => ({
+	fair: one(fairDetailsTable, {
+		fields: [userSettingsTable.fairId],
+		references: [fairDetailsTable.id],
+	}),
 }));

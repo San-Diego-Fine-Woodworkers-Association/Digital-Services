@@ -18,9 +18,11 @@ import { MembersImportDialog } from "./members-import-dialog";
 export function MembersPageClient({
   initialMembers,
   currentUserMemberId,
+  fairId,
 }: {
   initialMembers: DbMember[];
   currentUserMemberId?: string;
+  fairId?: string;
 }) {
   const [members, setMembers] = useState<DbMember[]>(initialMembers);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export function MembersPageClient({
     try {
       const result = await bulkDeleteMembers(Array.from(selectedMemberIds));
 
-      const updatedMembers = await getMembersForAdmin();
+      const updatedMembers = await getMembersForAdmin(fairId);
       setMembers(updatedMembers);
       setSelectedMemberIds(new Set());
 
@@ -122,7 +124,7 @@ export function MembersPageClient({
 
       const result = await bulkMakeAdmin(nonAdminIds);
 
-      const updatedMembers = await getMembersForAdmin();
+      const updatedMembers = await getMembersForAdmin(fairId);
       setMembers(updatedMembers);
       setSelectedMemberIds(new Set());
 
@@ -144,8 +146,8 @@ export function MembersPageClient({
   const hasSelection = selectedCount > 0;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6 min-w-0">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Members</h1>
           <p className="text-muted-foreground mt-2">
@@ -154,7 +156,7 @@ export function MembersPageClient({
         </div>
         <Button
           onClick={() => setShowImportDialog(true)}
-          className="gap-2"
+          className="gap-2 shrink-0"
         >
           <Upload className="size-4" />
           Import CSV
@@ -162,7 +164,7 @@ export function MembersPageClient({
       </div>
 
       {hasSelection && (
-        <div className="flex items-center justify-between bg-muted p-4 rounded-lg border">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-muted p-4 rounded-lg border">
           <span className="text-sm font-medium">
             {selectedCount} member{selectedCount > 1 ? "s" : ""} selected
           </span>

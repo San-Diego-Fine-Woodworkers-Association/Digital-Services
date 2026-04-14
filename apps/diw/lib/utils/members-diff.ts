@@ -45,6 +45,7 @@ function hasChanges(current: DbMember, csv: MemberData): boolean {
     current.email !== csv.email ||
     current.membership !== csv.membership ||
     current.address !== csv.address ||
+    current.phone !== csv.phone ||
     current.isAdmin !== csv.isAdmin
   );
 }

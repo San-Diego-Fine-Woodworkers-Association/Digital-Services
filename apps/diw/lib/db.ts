@@ -12,5 +12,6 @@ export {
 	rolesTable,
 	slotsTable,
 	registrationsTable,
-	adminUsersTable
+	adminUsersTable,
+	userSettingsTable
 } from './db/schema';

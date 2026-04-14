@@ -13,6 +13,7 @@ import { RegistrationSidebar } from "@/components/registration-sidebar";
 import { RegisterButton } from "@/components/register-button";
 import { ConfirmDialog } from "@/components/registration/confirm-dialog";
 import { registerForSlot } from "@/lib/actions/registration";
+import { confirmContactDetails } from "@/lib/actions/contact";
 
 interface Registration {
 	id: string;
@@ -56,6 +57,10 @@ interface FairRegistrationClientProps {
 	fairEndDate: string;
 	fairClosedDates: string[];
 	initialSlotId?: string;
+	fairId: string;
+	contactValidated: boolean;
+	initialAddress: string;
+	initialPhone: string;
 }
 
 function formatTime(dateStr: Date | string) {
@@ -101,15 +106,20 @@ export function FairRegistrationClient({
 	fairEndDate,
 	fairClosedDates,
 	initialSlotId,
+	fairId,
+	contactValidated,
+	initialAddress,
+	initialPhone,
 }: FairRegistrationClientProps) {
 	const router = useRouter();
 	const dateRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
 	const [pendingSlotId, setPendingSlotId] = useState<string | null>(() => initialSlotId ?? null);
-	const [dialogPhase, setDialogPhase] = useState<"confirm" | "success" | null>(() =>
+	const [dialogPhase, setDialogPhase] = useState<"confirm" | "contact" | "success" | null>(() =>
 		initialSlotId ? "confirm" : null
 	);
 	const [registering, setRegistering] = useState(false);
+	const [contactValidatedLocal, setContactValidatedLocal] = useState(contactValidated);
 
 	// Strip the ?slot= param from the URL immediately on mount so it doesn't pollute history.
 	useEffect(() => {
@@ -142,11 +152,45 @@ export function FairRegistrationClient({
 
 	async function handleConfirm() {
 		if (!pendingSlotId) return;
+		if (!contactValidatedLocal) {
+			setDialogPhase("contact");
+			return;
+		}
 		setRegistering(true);
 
 		const result = await registerForSlot(pendingSlotId);
 		if (!result.success) {
-			toast.error(result.error || "Registration failed.");
+			if (result.requiresContactValidation) {
+				setDialogPhase("contact");
+			} else {
+				toast.error(result.error || "Registration failed.");
+				setDialogPhase(null);
+			}
+		} else {
+			toast.success("Registered!");
+			setDialogPhase("success");
+			router.refresh();
+		}
+
+		setRegistering(false);
+	}
+
+	async function handleContactConfirm(address: string, phone: string) {
+		if (!pendingSlotId) return;
+		setRegistering(true);
+
+		const contactResult = await confirmContactDetails(fairId, address, phone);
+		if (!contactResult.success) {
+			toast.error(contactResult.error || "Failed to save contact details.");
+			setRegistering(false);
+			return;
+		}
+
+		setContactValidatedLocal(true);
+
+		const regResult = await registerForSlot(pendingSlotId);
+		if (!regResult.success) {
+			toast.error(regResult.error || "Registration failed.");
 			setDialogPhase(null);
 		} else {
 			toast.success("Registered!");
@@ -368,7 +412,10 @@ export function FairRegistrationClient({
 				phase={dialogPhase}
 				loading={registering}
 				onConfirm={handleConfirm}
+				onContactConfirm={handleContactConfirm}
 				onClose={handleDialogClose}
+				initialAddress={initialAddress}
+				initialPhone={initialPhone}
 			/>
 		</>
 	);

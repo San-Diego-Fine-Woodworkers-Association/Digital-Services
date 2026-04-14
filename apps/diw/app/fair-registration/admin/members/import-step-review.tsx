@@ -123,6 +123,12 @@ export function ImportStepReview({
                           <span className="text-green-600">{newData.address}</span>
                         </p>
                       )}
+                      {old.phone !== newData.phone && (
+                        <p className="text-xs">
+                          Phone: <span className="line-through text-muted-foreground">{old.phone || "—"}</span> →{" "}
+                          <span className="text-green-600">{newData.phone}</span>
+                        </p>
+                      )}
                       {old.isAdmin !== newData.isAdmin && (
                         <p className="text-xs">
                           Admin: <span className="line-through text-muted-foreground">{old.isAdmin ? "Yes" : "No"}</span> →{" "}

@@ -15,6 +15,13 @@
       "when": 1775709128200,
       "tag": "0001_striped_toxin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776118873141,
+      "tag": "0002_mushy_bedlam",
+      "breakpoints": true
     }
   ]
 }

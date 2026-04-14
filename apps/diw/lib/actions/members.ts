@@ -24,8 +24,31 @@ const MAX_CSV_SIZE = 1024 * 1024;
 /**
  * Get all members from database
  */
-export async function getMembersForAdmin(): Promise<DbMember[]> {
+export async function getMembersForAdmin(fairId?: string): Promise<DbMember[]> {
   await requireAdmin();
+
+  if (fairId) {
+    const members = await db.execute<DbMember>(
+      sql`
+        SELECT
+          m."memberId" as "memberId",
+          u.id as "userId",
+          u.name,
+          u.email,
+          m.membership,
+          u.address,
+          u.phone,
+          CASE WHEN a."memberId" IS NOT NULL THEN true ELSE false END as "isAdmin",
+          COALESCE(us."contactValidated", false) as "contactValidated"
+        FROM membership m
+        LEFT JOIN "user" u ON u.member_id = m."memberId"
+        LEFT JOIN admin_users a ON a."memberId" = m."memberId"
+        LEFT JOIN user_settings us ON us."memberId" = m."memberId" AND us."fairId" = ${fairId}
+        ORDER BY m."memberId"
+      `
+    );
+    return members.rows || [];
+  }
 
   const members = await db.execute<DbMember>(
     sql`
@@ -36,14 +59,15 @@ export async function getMembersForAdmin(): Promise<DbMember[]> {
         u.email,
         m.membership,
         u.address,
-        CASE WHEN a."memberId" IS NOT NULL THEN true ELSE false END as "isAdmin"
+        u.phone,
+        CASE WHEN a."memberId" IS NOT NULL THEN true ELSE false END as "isAdmin",
+        false as "contactValidated"
       FROM membership m
       LEFT JOIN "user" u ON u.member_id = m."memberId"
       LEFT JOIN admin_users a ON a."memberId" = m."memberId"
       ORDER BY m."memberId"
     `
   );
-
   return members.rows || [];
 }
 
@@ -163,6 +187,7 @@ async function applyDiff(
             name: newData.name,
             email: newData.email,
             address: newData.address,
+            phone: newData.phone,
           })
           .where(eq(userTable.id, old.userId));
 
@@ -197,6 +222,7 @@ async function applyDiff(
           emailVerified: false,
           memberId: member.memberId,
           address: member.address,
+          phone: member.phone,
           createdAt: now,
           updatedAt: now,
           banned: false,
@@ -265,6 +291,7 @@ export async function updateSingleMember(
       if (updates.name !== undefined) userUpdates.name = updates.name;
       if (updates.email !== undefined) userUpdates.email = updates.email;
       if (updates.address !== undefined) userUpdates.address = updates.address;
+      if (updates.phone !== undefined) userUpdates.phone = updates.phone;
       if (Object.keys(userUpdates).length > 0) {
         await tx
           .update(userTable)

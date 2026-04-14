@@ -78,7 +78,7 @@ export function ImportStepUpload({
           Select a CSV file with the following columns:
         </p>
         <div className="bg-muted p-3 rounded-md font-mono text-sm">
-          Member ID, Name, Email, Membership, Address, Admin
+          Member ID, Name, Email, Membership, Address, Phone Number, Admin
         </div>
       </div>
 

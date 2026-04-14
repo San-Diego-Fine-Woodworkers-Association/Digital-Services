@@ -1,8 +1,8 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { updateTag } from "next/cache";
-import { db, registrationsTable, slotsTable } from "../db";
+import { db, registrationsTable, slotsTable, userSettingsTable } from "../db";
 import { getServerSession } from "../auth/get-session";
 
 async function getUserRegistrations(userId: string) {
@@ -18,13 +18,35 @@ async function getUserRegistrations(userId: string) {
 	});
 }
 
-export async function registerForSlot(slotId: string): Promise<{ success: boolean; error?: string }> {
+export async function registerForSlot(slotId: string): Promise<{ success: boolean; requiresContactValidation?: true; error?: string }> {
 	const session = await getServerSession();
 	if (!session?.user) {
 		return { success: false, error: "You must be logged in to register." };
 	}
 
 	const userId = session.user.id;
+
+	// Server-side contact validation gate
+	if (session.user.memberId) {
+		const slotPreview = await db.query.slotsTable.findFirst({
+			where: eq(slotsTable.id, slotId),
+			columns: { id: true },
+			with: { role: { columns: { fairId: true } } },
+		});
+		const fairId = slotPreview?.role?.fairId;
+
+		if (fairId) {
+			const settings = await db.query.userSettingsTable.findFirst({
+				where: and(
+					eq(userSettingsTable.memberId, session.user.memberId),
+					eq(userSettingsTable.fairId, fairId)
+				),
+			});
+			if (!settings?.contactValidated) {
+				return { success: false, requiresContactValidation: true as const, error: "Contact details must be confirmed before registering." };
+			}
+		}
+	}
 
 	const result = await db.transaction(async (tx) => {
 		// Get the target slot with current registrations

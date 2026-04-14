@@ -16,6 +16,11 @@ export function isValidMemberId(memberId: string): boolean {
   return memberId.trim().length > 0;
 }
 
+export function isValidPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length === 10 || (digits.length === 11 && digits.startsWith("1"));
+}
+
 // CSV Parsing
 
 const EXPECTED_COLUMNS = [
@@ -24,6 +29,7 @@ const EXPECTED_COLUMNS = [
   "Email",
   "Membership",
   "Address",
+  "Phone Number",
   "Admin",
 ];
 
@@ -119,6 +125,7 @@ export function parseMembersFromCsv(csvContent: string): ParseResult {
     const email = getColumnValue("Email");
     const membership = getColumnValue("Membership");
     const address = getColumnValue("Address");
+    const phone = getColumnValue("Phone Number");
     const adminStr = getColumnValue("Admin");
 
     // Validate each field
@@ -177,6 +184,15 @@ export function parseMembersFromCsv(csvContent: string): ParseResult {
       continue;
     }
 
+    if (!isValidPhone(phone)) {
+      errors.push({
+        row: i + 1,
+        field: "Phone Number",
+        message: `Invalid phone number: ${phone}`,
+      });
+      continue;
+    }
+
     const isAdmin = adminStr.toLowerCase() === "true";
 
     data.push({
@@ -185,6 +201,7 @@ export function parseMembersFromCsv(csvContent: string): ParseResult {
       email,
       membership,
       address,
+      phone,
       isAdmin,
     });
   }

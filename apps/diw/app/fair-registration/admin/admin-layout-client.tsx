@@ -38,7 +38,7 @@ export function AdminLayoutClient({
 	const crumbs = buildBreadcrumbs(segments);
 
 	return (
-		<div className="flex flex-1 flex-col">
+		<div className="flex flex-1 flex-col min-w-0">
 			{!isRoot && segments.length > 0 && (
 				<div className="border-b px-4 py-3">
 					<Breadcrumb className="max-w-[1200px] mx-auto w-full">
@@ -69,8 +69,8 @@ export function AdminLayoutClient({
 					</Breadcrumb>
 				</div>
 			)}
-			<div className="flex flex-1 flex-col p-4">
-				<div className="mx-auto w-full max-w-[1200px]">{children}</div>
+			<div className="flex flex-1 flex-col p-4 min-w-0">
+				<div className="mx-auto w-full max-w-[1200px] min-w-0">{children}</div>
 			</div>
 		</div>
 	);

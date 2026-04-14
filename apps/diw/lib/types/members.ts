@@ -11,6 +11,7 @@ export type MembersCsvRow = {
   Email: string;
   Membership: string;
   Address: string;
+  "Phone Number": string;
   Admin: string; // "true" or "false"
 };
 
@@ -23,6 +24,7 @@ export type MemberData = {
   email: string;
   membership: string;
   address: string;
+  phone: string;
   isAdmin: boolean;
 };
 
@@ -31,6 +33,7 @@ export type MemberData = {
  */
 export type DbMember = MemberData & {
   userId: string;
+  contactValidated: boolean;
 };
 
 /**
