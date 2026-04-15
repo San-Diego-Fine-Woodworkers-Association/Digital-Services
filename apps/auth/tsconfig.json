@@ -1,5 +1,9 @@
 {
   "extends": "@sdfwa/typescript-config/nextjs.json",
+  "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
   "compilerOptions": {
     "plugins": [
       {

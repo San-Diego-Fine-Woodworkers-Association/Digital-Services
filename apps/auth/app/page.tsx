@@ -1,3 +1,3 @@
 export default function Page() {
-  return <main>Auth app</main>
+  return <main>SDFWA Auth</main>
 }

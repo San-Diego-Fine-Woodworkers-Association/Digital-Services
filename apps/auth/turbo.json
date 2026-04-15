@@ -1,0 +1,19 @@
+{
+	"extends": [
+		"//"
+	],
+	"tasks": {
+		"build": {
+			"env": [
+				"$TURBO_EXTENDS$",
+                "DATABASE_CONNECTION_STRING",
+                "BETTER_AUTH_SECRET",
+                "BETTER_AUTH_URL",
+                "NEXT_PUBLIC_BASE_URL",
+                "GOOGLE_CLIENT_ID",
+                "GOOGLE_CLIENT_SECRET",
+                "AUTH_COOKIE_DOMAIN"
+			]
+		}
+	}
+}
