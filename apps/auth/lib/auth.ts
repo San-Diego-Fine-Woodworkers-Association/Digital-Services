@@ -6,7 +6,10 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
-  baseURL: process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
+  baseURL: process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3001",
+  emailAndPassword: {
+    enabled: true,
+  },
   user: {
     additionalFields: {
       memberId: {
