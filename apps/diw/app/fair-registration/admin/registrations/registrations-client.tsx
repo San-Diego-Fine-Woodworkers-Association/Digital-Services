@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { Button } from "@sdfwa/ui/components/button";
 import {
 	AlertDialog,
@@ -14,8 +15,17 @@ import {
 	AlertDialogCancel,
 	AlertDialogAction,
 } from "@sdfwa/ui/components/alert-dialog";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@sdfwa/ui/components/table";
 import { toast } from "@sdfwa/ui/components/sonner";
 import { adminDeleteRegistration } from "@/lib/actions/admin";
+import { AdminRegisterDialog } from "./admin-register-dialog";
 
 interface RegistrationRow {
 	registrationId: string;
@@ -28,6 +38,21 @@ interface RegistrationRow {
 	memberId: string;
 }
 
+interface RoleWithSlots {
+	id: string;
+	name: string;
+	numberOfVolunteers: number;
+	fairId: string;
+	slots: {
+		id: string;
+		date: string;
+		startTime: Date | string;
+		endTime: Date | string;
+		numberOfVolunteers: number;
+		registrations: { id: string }[];
+	}[];
+}
+
 function formatTime(d: Date | string) {
 	return new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
@@ -38,12 +63,15 @@ function formatDate(d: string) {
 
 export function RegistrationsClient({
 	registrations,
+	roles,
 }: {
 	registrations: RegistrationRow[];
+	roles: RoleWithSlots[];
 }) {
 	const router = useRouter();
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const [deleteTarget, setDeleteTarget] = useState<RegistrationRow | null>(null);
+	const [showRegisterDialog, setShowRegisterDialog] = useState(false);
 
 	async function handleDelete(reg: RegistrationRow) {
 		setDeleteTarget(null);
@@ -60,39 +88,45 @@ export function RegistrationsClient({
 				<h1 className="text-2xl font-bold">
 					Registrations ({registrations.length})
 				</h1>
-				<Button variant="outline" asChild>
-					<Link href="/api/admin/export">Export CSV</Link>
-				</Button>
+				<div className="flex gap-2">
+					<Button onClick={() => setShowRegisterDialog(true)} className="gap-2">
+						<Plus className="size-4" />
+						Register Member
+					</Button>
+					<Button variant="outline" asChild>
+						<Link href="/api/admin/export">Export CSV</Link>
+					</Button>
+				</div>
 			</div>
 
 			{registrations.length === 0 ? (
 				<p className="text-muted-foreground">No registrations yet.</p>
 			) : (
-				<div className="overflow-x-auto">
-					<table className="w-full text-sm">
-						<thead>
-							<tr className="border-b text-left">
-								<th className="p-2 font-medium">Date</th>
-								<th className="p-2 font-medium">Role</th>
-								<th className="p-2 font-medium">Slot</th>
-								<th className="p-2 font-medium">Volunteer</th>
-								<th className="p-2 font-medium">Email</th>
-								<th className="p-2 font-medium">Member ID</th>
-								<th className="p-2 font-medium"></th>
-							</tr>
-						</thead>
-						<tbody>
+				<div className="rounded-lg border bg-card overflow-x-auto">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Date</TableHead>
+								<TableHead>Role</TableHead>
+								<TableHead>Slot</TableHead>
+								<TableHead>Volunteer</TableHead>
+								<TableHead>Email</TableHead>
+								<TableHead>Member ID</TableHead>
+								<TableHead />
+							</TableRow>
+						</TableHeader>
+						<TableBody>
 							{registrations.map((reg) => (
-								<tr key={reg.registrationId} className="border-b">
-									<td className="p-2">{formatDate(reg.date)}</td>
-									<td className="p-2">{reg.roleName}</td>
-									<td className="p-2">
+								<TableRow key={reg.registrationId}>
+									<TableCell>{formatDate(reg.date)}</TableCell>
+									<TableCell>{reg.roleName}</TableCell>
+									<TableCell className="whitespace-nowrap">
 										{formatTime(reg.startTime)} – {formatTime(reg.endTime)}
-									</td>
-									<td className="p-2">{reg.volunteerName}</td>
-									<td className="p-2">{reg.volunteerEmail}</td>
-									<td className="p-2">{reg.memberId}</td>
-									<td className="p-2">
+									</TableCell>
+									<TableCell>{reg.volunteerName}</TableCell>
+									<TableCell className="text-sm text-muted-foreground">{reg.volunteerEmail}</TableCell>
+									<TableCell className="font-mono text-sm">{reg.memberId}</TableCell>
+									<TableCell>
 										<Button
 											variant="outline"
 											size="sm"
@@ -101,11 +135,11 @@ export function RegistrationsClient({
 										>
 											{deletingId === reg.registrationId ? "..." : "Delete"}
 										</Button>
-									</td>
-								</tr>
+									</TableCell>
+								</TableRow>
 							))}
-						</tbody>
-					</table>
+						</TableBody>
+					</Table>
 				</div>
 			)}
 			<AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
@@ -127,6 +161,11 @@ export function RegistrationsClient({
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
+			<AdminRegisterDialog
+				open={showRegisterDialog}
+				onOpenChange={setShowRegisterDialog}
+				roles={roles}
+			/>
 		</div>
 	);
 }

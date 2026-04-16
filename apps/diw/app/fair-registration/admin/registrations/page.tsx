@@ -1,4 +1,4 @@
-import { getActiveFair } from "@/lib/actions/fair";
+import { getActiveFair, getRolesWithSlots } from "@/lib/actions/fair";
 import { getAllRegistrations } from "@/lib/queries/admin";
 import { RegistrationsClient } from "./registrations-client";
 
@@ -14,7 +14,10 @@ export default async function RegistrationsPage() {
 		);
 	}
 
-	const registrations = await getAllRegistrations(fair.id);
+	const [registrations, roles] = await Promise.all([
+		getAllRegistrations(fair.id),
+		getRolesWithSlots(fair.id),
+	]);
 
-	return <RegistrationsClient registrations={registrations} />;
+	return <RegistrationsClient registrations={registrations} roles={roles} />;
 }
