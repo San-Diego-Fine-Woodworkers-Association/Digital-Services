@@ -1,8 +1,9 @@
 "use server";
 
-import { eq, and, notInArray, inArray } from "drizzle-orm";
+import { eq, and, or, ilike, notInArray, inArray } from "drizzle-orm";
 import { updateTag } from "next/cache";
 import { db, fairDetailsTable, rolesTable, slotsTable, registrationsTable } from "../db";
+import { user as userTable } from "../db/auth-schema";
 import { requireAdmin } from "../auth/get-session";
 
 // Fair actions
@@ -165,4 +166,82 @@ export async function adminDeleteRegistration(registrationId: string) {
 	await requireAdmin();
 	await db.delete(registrationsTable).where(eq(registrationsTable.id, registrationId));
 	updateTag("registrations");
+}
+
+export async function searchMembers(query: string): Promise<{ id: string; name: string; memberId: string | null; email: string }[]> {
+	await requireAdmin();
+
+	const trimmed = query.trim();
+	if (!trimmed) return [];
+
+	const results = await db
+		.select({
+			id: userTable.id,
+			name: userTable.name,
+			memberId: userTable.memberId,
+			email: userTable.email,
+		})
+		.from(userTable)
+		.where(
+			or(
+				ilike(userTable.name, `%${trimmed}%`),
+				ilike(userTable.memberId, `${trimmed}%`)
+			)
+		)
+		.limit(20);
+
+	return results;
+}
+
+export async function adminCreateRegistration(
+	slotId: string,
+	userId: string
+): Promise<{ success: boolean; error?: string }> {
+	await requireAdmin();
+
+	return await db.transaction(async (tx) => {
+		const slot = await tx.query.slotsTable.findFirst({
+			where: eq(slotsTable.id, slotId),
+			with: { registrations: true },
+		});
+
+		if (!slot) {
+			return { success: false, error: "Slot not found." };
+		}
+
+		if (slot.registrations.length >= slot.numberOfVolunteers) {
+			return { success: false, error: "This slot is full." };
+		}
+
+		const existing = slot.registrations.find((r) => r.userId === userId);
+		if (existing) {
+			return { success: false, error: "This member is already registered for this slot." };
+		}
+
+		// Check for overlapping registrations
+		const userRegistrations = await tx.query.registrationsTable.findMany({
+			where: eq(registrationsTable.userId, userId),
+			with: { slot: { with: { role: true } } },
+		});
+
+		const overlapping = userRegistrations.find((reg) => {
+			const s = reg.slot;
+			if (s.date !== slot.date) return false;
+			return s.startTime < slot.endTime && s.endTime > slot.startTime;
+		});
+
+		if (overlapping) {
+			const roleName = overlapping.slot.role?.name || "another role";
+			return {
+				success: false,
+				error: `Conflicts with existing registration for "${roleName}" (${new Date(overlapping.slot.startTime).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} – ${new Date(overlapping.slot.endTime).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}).`,
+			};
+		}
+
+		await tx.insert(registrationsTable).values({ slotId, userId });
+
+		updateTag("roles");
+		updateTag("registrations");
+		return { success: true };
+	});
 }
