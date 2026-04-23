@@ -1,8 +1,15 @@
 import { desc } from "drizzle-orm";
-import Link from "next/link";
 
+import { LeftNav, type NavItem } from "@/app/components/left-nav";
 import { db } from "@/lib/db";
-import { reporterTable } from "@/lib/db/schema";
+import {
+	logEntryTable,
+	maintainerTable,
+	reporterTable,
+	statusesTable,
+	toolMaintainerTable,
+	toolTable,
+} from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -18,61 +25,146 @@ export default async function Page({ searchParams }: PageProps) {
 	const selectedSection = Array.isArray(sectionParam)
 		? sectionParam[0] ?? ""
 		: sectionParam ?? "";
-	const showReporters = selectedSection === "reporters";
 
-	const reporters = showReporters
-		? await db.select().from(reporterTable).orderBy(desc(reporterTable.reportId))
-		: [];
+	const navItems: NavItem[] = [
+		{ key: "reporters", label: "Reporters" },
+		{ key: "tool", label: "Tool" },
+		{ key: "maintainer", label: "Maintainer" },
+		{ key: "tool_maintainer", label: "Tool Maintainer" },
+		{ key: "statuses", label: "Statuses" },
+		{ key: "log_entry", label: "Log Entry" },
+	];
+
+	const validSections = new Set(navItems.map((item) => item.key));
+	const activeSection = validSections.has(selectedSection) ? selectedSection : "";
+
+	let heading = "";
+	let columns: string[] = [];
+	let rows: Array<Record<string, string>> = [];
+
+	if (activeSection === "reporters") {
+		const reporters = await db
+			.select()
+			.from(reporterTable)
+			.orderBy(desc(reporterTable.reportId));
+		heading = "Reporters";
+		columns = ["Report ID", "Name", "Email", "Member ID", "Deleted"];
+		rows = reporters.map((row) => ({
+			"Report ID": row.reportId,
+			Name: row.name,
+			Email: row.email,
+			"Member ID": row.memberId,
+			Deleted: String(row.deleted),
+		}));
+	}
+
+	if (activeSection === "tool") {
+		const tools = await db.select().from(toolTable).orderBy(desc(toolTable.id));
+		heading = "Tool";
+		columns = ["ID", "Name", "Serial Number", "Deleted"];
+		rows = tools.map((row) => ({
+			ID: row.id,
+			Name: row.name,
+			"Serial Number": row.serialNumber,
+			Deleted: String(row.deleted),
+		}));
+	}
+
+	if (activeSection === "maintainer") {
+		const maintainers = await db
+			.select()
+			.from(maintainerTable)
+			.orderBy(desc(maintainerTable.id));
+		heading = "Maintainer";
+		columns = ["ID", "Name", "Email", "Deleted"];
+		rows = maintainers.map((row) => ({
+			ID: row.id,
+			Name: row.name,
+			Email: row.email,
+			Deleted: String(row.deleted),
+		}));
+	}
+
+	if (activeSection === "tool_maintainer") {
+		const toolMaintainers = await db
+			.select()
+			.from(toolMaintainerTable)
+			.orderBy(desc(toolMaintainerTable.id));
+		heading = "Tool Maintainer";
+		columns = ["ID", "Tool ID", "Maintainer ID"];
+		rows = toolMaintainers.map((row) => ({
+			ID: row.id,
+			"Tool ID": row.toolId,
+			"Maintainer ID": row.maintainerId,
+		}));
+	}
+
+	if (activeSection === "statuses") {
+		const statuses = await db
+			.select()
+			.from(statusesTable)
+			.orderBy(desc(statusesTable.id));
+		heading = "Statuses";
+		columns = ["ID", "Name", "Deleted"];
+		rows = statuses.map((row) => ({
+			ID: row.id,
+			Name: row.name,
+			Deleted: String(row.deleted),
+		}));
+	}
+
+	if (activeSection === "log_entry") {
+		const logEntries = await db
+			.select()
+			.from(logEntryTable)
+			.orderBy(desc(logEntryTable.id));
+		heading = "Log Entry";
+		columns = ["ID", "Tool ID", "Reporter ID", "Status ID", "Date", "Title", "Deleted"];
+		rows = logEntries.map((row) => ({
+			ID: row.id,
+			"Tool ID": row.toolId,
+			"Reporter ID": row.reporterId,
+			"Status ID": row.statusId,
+			Date: row.date.toISOString(),
+			Title: row.title,
+			Deleted: String(row.deleted),
+		}));
+	}
 
 	return (
 		<main className="mx-auto flex max-w-6xl gap-8 p-8">
-			<aside className="w-56 shrink-0 rounded-lg border border-border bg-card p-4">
-				<h2 className="mb-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-					Navigation
-				</h2>
-				<nav>
-					<Link
-						href="/?section=reporters"
-						className={`block rounded-md px-3 py-2 text-sm transition-colors ${
-							showReporters
-								? "bg-primary text-primary-foreground"
-								: "text-card-foreground hover:bg-accent hover:text-accent-foreground"
-						}`}
-					>
-						Reporters
-					</Link>
-				</nav>
-			</aside>
+			<LeftNav items={navItems} selectedKey={activeSection} />
 
 			<section className="min-w-0 flex-1">
 				<h1 className="text-2xl font-semibold tracking-tight">Shop Ops</h1>
-				{showReporters ? (
+				{activeSection ? (
 					<div className="mt-6 overflow-x-auto rounded-lg border border-border">
+						<div className="border-b border-border px-4 py-3 text-sm font-medium">{heading}</div>
 						<table className="min-w-full divide-y divide-border text-sm">
 							<thead className="bg-muted/50">
 								<tr>
-									<th className="px-4 py-3 text-left font-medium">Report ID</th>
-									<th className="px-4 py-3 text-left font-medium">Name</th>
-									<th className="px-4 py-3 text-left font-medium">Email</th>
-									<th className="px-4 py-3 text-left font-medium">Member ID</th>
-									<th className="px-4 py-3 text-left font-medium">Deleted</th>
+									{columns.map((column) => (
+										<th key={column} className="px-4 py-3 text-left font-medium">
+											{column}
+										</th>
+									))}
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-border">
-								{reporters.length === 0 ? (
+								{rows.length === 0 ? (
 									<tr>
-										<td colSpan={5} className="px-4 py-6 text-muted-foreground">
-											No reporters yet.
+										<td colSpan={columns.length} className="px-4 py-6 text-muted-foreground">
+											No rows found.
 										</td>
 									</tr>
 								) : (
-									reporters.map((row) => (
-										<tr key={row.reportId} className="bg-card">
-											<td className="px-4 py-3">{row.reportId}</td>
-											<td className="px-4 py-3 font-medium">{row.name}</td>
-											<td className="px-4 py-3">{row.email}</td>
-											<td className="px-4 py-3">{row.memberId}</td>
-											<td className="px-4 py-3">{String(row.deleted)}</td>
+									rows.map((row, rowIndex) => (
+										<tr key={`${heading}-${rowIndex}`} className="bg-card">
+											{columns.map((column) => (
+												<td key={column} className="px-4 py-3">
+													{row[column]}
+												</td>
+											))}
 										</tr>
 									))
 								)}
