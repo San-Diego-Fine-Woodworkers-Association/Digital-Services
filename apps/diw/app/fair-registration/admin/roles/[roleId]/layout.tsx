@@ -1,14 +1,18 @@
+import { Suspense } from "react";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { getRoleById } from "@/lib/queries/admin";
 import { AdminLayoutClient } from "../../admin-layout-client";
 
-export default async function RoleDetailLayout({
+async function RoleBreadcrumbShell({
 	children,
 	params,
 }: {
 	children: React.ReactNode;
 	params: Promise<{ roleId: string }>;
 }) {
+	await connection();
+
 	const { roleId } = await params;
 	const role = await getRoleById(roleId);
 
@@ -20,5 +24,19 @@ export default async function RoleDetailLayout({
 		<AdminLayoutClient breadcrumbOverrides={{ [roleId]: role.name }}>
 			{children}
 		</AdminLayoutClient>
+	);
+}
+
+export default function RoleDetailLayout({
+	children,
+	params,
+}: {
+	children: React.ReactNode;
+	params: Promise<{ roleId: string }>;
+}) {
+	return (
+		<Suspense fallback={<AdminLayoutClient>{children}</AdminLayoutClient>}>
+			<RoleBreadcrumbShell params={params}>{children}</RoleBreadcrumbShell>
+		</Suspense>
 	);
 }

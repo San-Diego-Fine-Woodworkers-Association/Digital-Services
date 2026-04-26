@@ -1,10 +1,15 @@
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { Skeleton } from "@sdfwa/ui/components/skeleton";
 import { getActiveFair, getRolesWithSlots } from "@/lib/actions/fair";
 import { getMyRegistrations } from "@/lib/actions/registration";
 import { getContactInfo } from "@/lib/actions/contact";
 import { getServerSession } from "@/lib/auth/get-session";
 import { FairRegistrationClient } from "./fair-registration-client";
 
-export default async function Page() {
+async function FairRegistrationContent() {
+	await connection();
+
 	const fair = await getActiveFair();
 
 	if (!fair) {
@@ -38,5 +43,22 @@ export default async function Page() {
 			initialAddress={contactInfo?.address ?? ""}
 			initialPhone={contactInfo?.phone ?? ""}
 		/>
+	);
+}
+
+function FairRegistrationFallback() {
+	return (
+		<div className="p-4 mx-auto w-full max-w-[1200px] space-y-3">
+			<Skeleton className="h-9 w-64" />
+			<Skeleton className="h-64 w-full" />
+		</div>
+	);
+}
+
+export default function Page() {
+	return (
+		<Suspense fallback={<FairRegistrationFallback />}>
+			<FairRegistrationContent />
+		</Suspense>
 	);
 }

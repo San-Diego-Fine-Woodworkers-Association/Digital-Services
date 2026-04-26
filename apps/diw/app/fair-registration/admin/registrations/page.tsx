@@ -1,8 +1,13 @@
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { Skeleton } from "@sdfwa/ui/components/skeleton";
 import { getActiveFair, getRolesWithSlots } from "@/lib/actions/fair";
 import { getAllRegistrations } from "@/lib/queries/admin";
 import { RegistrationsClient } from "./registrations-client";
 
-export default async function RegistrationsPage() {
+async function RegistrationsContent() {
+	await connection();
+
 	const fair = await getActiveFair();
 
 	if (!fair) {
@@ -20,4 +25,21 @@ export default async function RegistrationsPage() {
 	]);
 
 	return <RegistrationsClient registrations={registrations} roles={roles} />;
+}
+
+function RegistrationsFallback() {
+	return (
+		<div className="space-y-3">
+			<Skeleton className="h-9 w-48" />
+			<Skeleton className="h-64 w-full" />
+		</div>
+	);
+}
+
+export default function RegistrationsPage() {
+	return (
+		<Suspense fallback={<RegistrationsFallback />}>
+			<RegistrationsContent />
+		</Suspense>
+	);
 }
