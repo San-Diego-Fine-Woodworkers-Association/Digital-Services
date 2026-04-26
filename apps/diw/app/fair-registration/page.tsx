@@ -4,12 +4,7 @@ import { getContactInfo } from "@/lib/actions/contact";
 import { getServerSession } from "@/lib/auth/get-session";
 import { FairRegistrationClient } from "./fair-registration-client";
 
-export default async function Page({
-	searchParams,
-}: {
-	searchParams: Promise<{ slot?: string }>;
-}) {
-	const { slot: initialSlotId } = await searchParams;
+export default async function Page() {
 	const fair = await getActiveFair();
 
 	if (!fair) {
@@ -38,7 +33,6 @@ export default async function Page({
 			fairStartDate={fair.startDate}
 			fairEndDate={fair.endDate}
 			fairClosedDates={fair.closedDates}
-			initialSlotId={initialSlotId}
 			fairId={fair.id}
 			contactValidated={contactInfo?.contactValidated ?? true}
 			initialAddress={contactInfo?.address ?? ""}

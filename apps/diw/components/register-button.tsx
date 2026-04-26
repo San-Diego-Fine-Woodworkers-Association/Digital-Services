@@ -103,11 +103,9 @@ export function RegisterButton({
 		button = (
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<span>
-						<Button size="sm" disabled variant="outline">
-							Conflict
-						</Button>
-					</span>
+					<Button size="sm" disabled variant="outline">
+						Conflict
+					</Button>
 				</TooltipTrigger>
 				<TooltipContent className="max-w-xs">
 					<p>{conflictReason}</p>
