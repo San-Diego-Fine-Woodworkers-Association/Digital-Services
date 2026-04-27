@@ -48,6 +48,13 @@ interface AppLayoutProps {
    * Optional className for the main content area
    */
   contentClassName?: string;
+
+  /**
+   * Fixed bottom navigation for mobile (replaces hamburger menu).
+   * When provided, renders as a fixed bottom bar on small screens
+   * and hides the hamburger/sheet menu.
+   */
+  mobileNav?: ReactNode;
 }
 
 /**
@@ -80,25 +87,26 @@ export function AppLayout({
   className,
   headerClassName,
   contentClassName,
+  mobileNav,
 }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className={cn("flex h-screen flex-col bg-background", className)}>
+    <div className={cn("fixed inset-0 flex flex-col bg-background", className)}>
       {/* Header */}
       <header
         className={cn(
           "border-b border-border bg-background",
-          "sticky top-0 z-40",
+          "shrink-0 z-40",
           "flex items-center justify-between",
           "px-4 py-3 sm:px-6 md:px-8",
           "h-16 gap-4",
           headerClassName,
         )}
       >
-        {/* Mobile menu button + Logo */}
+        {/* Hamburger (only when no mobileNav) + Logo */}
         <div className="flex shrink-0 items-center gap-2">
-          {navigation && (
+          {navigation && !mobileNav && (
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
@@ -132,8 +140,8 @@ export function AppLayout({
         </div>
       </header>
 
-      {/* Mobile navigation sheet */}
-      {navigation && (
+      {/* Mobile navigation sheet (only when no mobileNav bottom bar) */}
+      {navigation && !mobileNav && (
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetContent side="left" className="w-64 p-0">
             <SheetHeader className="border-b p-4">
@@ -150,9 +158,12 @@ export function AppLayout({
       )}
 
       {/* Main Content */}
-      <main className={cn("flex-1 overflow-auto flex items-stretch", contentClassName)}>
+      <main className={cn("flex-1 overflow-auto flex flex-col", mobileNav && "mb-16 sm:mb-0", contentClassName)}>
         {children}
       </main>
+
+      {/* Mobile bottom tab bar */}
+      {mobileNav}
     </div>
   );
 }
