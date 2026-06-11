@@ -6,6 +6,7 @@ export type SessionUser = {
   kind: UserKind | null;
   memberId: string | null;
   membership: string | null;
+  groups: string[];
 };
 
 export type Session = {
@@ -30,6 +31,7 @@ export type VolunteerDetail = {
   googleSub: string;
   email: string;
   name: string | null;
+  groups: string[];
 };
 
 export type CurrentUser =
@@ -46,6 +48,7 @@ export type CurrentUser =
       id: string;
       email: string;
       name: string;
+      groups: string[];
       volunteer: VolunteerDetail | null;
     }
   | {

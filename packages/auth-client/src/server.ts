@@ -47,3 +47,22 @@ export async function requireVolunteer(cookieHeader: string): Promise<Session> {
   if (s.user.kind !== "volunteer") throw new Error("Forbidden");
   return s;
 }
+
+/**
+ * Require the session to include at least one of the listed groups. Pass a
+ * single group string or an array. Throws "Unauthorized" if there's no session
+ * and "Forbidden" if there is one but none of the groups match.
+ */
+export async function requireGroup(
+  cookieHeader: string,
+  group: string | string[],
+): Promise<Session> {
+  const s = await getServerSession(cookieHeader);
+  if (!s) throw new Error("Unauthorized");
+  const allowed = Array.isArray(group) ? group : [group];
+  const userGroups = s.user.groups ?? [];
+  if (!allowed.some((g) => userGroups.includes(g))) {
+    throw new Error("Forbidden");
+  }
+  return s;
+}

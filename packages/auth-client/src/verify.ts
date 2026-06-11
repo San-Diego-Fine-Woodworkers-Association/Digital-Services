@@ -22,6 +22,7 @@ export type VerifiedJwt = JWTPayload & {
   kind?: UserKind | null;
   memberId?: string | null;
   membership?: string | null;
+  groups?: string[];
 };
 
 /**
@@ -54,5 +55,6 @@ export function payloadToSessionUser(payload: VerifiedJwt): SessionUser {
     kind: payload.kind ?? null,
     memberId: payload.memberId ?? null,
     membership: payload.membership ?? null,
+    groups: payload.groups ?? [],
   };
 }
