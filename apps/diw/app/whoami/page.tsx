@@ -17,6 +17,18 @@ export default async function WhoAmIPage() {
         Reads the SDFWA session from auth.sdfwa.org via @sdfwa/auth-client.
       </p>
       <section>
+        <h2 className="mb-2 text-xs uppercase tracking-wide">Groups</h2>
+        {session?.user.groups?.length ? (
+          <ul className="list-disc pl-5 text-xs">
+            {session.user.groups.map((g) => (
+              <li key={g}>{g}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground text-xs">No groups.</p>
+        )}
+      </section>
+      <section>
         <h2 className="mb-2 text-xs uppercase tracking-wide">Session</h2>
         <pre className="bg-muted overflow-x-auto rounded p-3 text-xs">
           {JSON.stringify(session, null, 2)}
