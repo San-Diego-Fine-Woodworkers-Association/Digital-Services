@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { enforceActiveOrRevoke } from "@/lib/auth/enforce-active";
 import { getServerSession } from "@/lib/auth/get-session";
 
 export async function GET() {
-  const session = await getServerSession();
+  const raw = await getServerSession();
+  const session = await enforceActiveOrRevoke(raw);
   if (!session?.user) {
     return NextResponse.json({ user: null }, { status: 200 });
   }

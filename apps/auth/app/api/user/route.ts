@@ -1,11 +1,13 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
+import { enforceActiveOrRevoke } from "@/lib/auth/enforce-active";
 import { getServerSession } from "@/lib/auth/get-session";
 import { db, proclassUsersTable, volunteersTable } from "@/lib/db";
 
 export async function GET() {
-  const session = await getServerSession();
+  const raw = await getServerSession();
+  const session = await enforceActiveOrRevoke(raw);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
