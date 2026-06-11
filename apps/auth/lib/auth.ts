@@ -1,9 +1,12 @@
 import { betterAuth, BetterAuthOptions } from "better-auth";
 import { customSession, jwt } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { db, user as userTable, volunteersTable } from "@/lib/db";
 import { memberLoginPlugin } from "./auth/member-login-plugin";
+
+const ALLOWED_GOOGLE_HD = "sdfwa.org";
 
 const baseOptions = {
   database: drizzleAdapter(db, { provider: "pg" }),
@@ -14,6 +17,50 @@ const baseOptions = {
       kind: { type: "string" },
       memberId: { type: "string" },
       membership: { type: "string" },
+    },
+  },
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      mapProfileToUser: (profile: { hd?: string; email: string; name?: string; picture?: string }) => {
+        if (profile.hd !== ALLOWED_GOOGLE_HD) {
+          throw new Error(
+            "Only @sdfwa.org Google Workspace accounts can sign in here.",
+          );
+        }
+        return {
+          email: profile.email,
+          name: profile.name ?? profile.email,
+          image: profile.picture,
+          kind: "volunteer",
+          memberId: null,
+          membership: null,
+        };
+      },
+    },
+  },
+  databaseHooks: {
+    account: {
+      create: {
+        after: async (account: { providerId: string; accountId: string; userId: string }) => {
+          if (account.providerId !== "google") return;
+          const [u] = await db
+            .select()
+            .from(userTable)
+            .where(eq(userTable.id, account.userId));
+          if (!u) return;
+          await db
+            .insert(volunteersTable)
+            .values({
+              userId: u.id,
+              googleSub: account.accountId,
+              email: u.email,
+              name: u.name,
+            })
+            .onConflictDoNothing();
+        },
+      },
     },
   },
   advanced: {
