@@ -14,6 +14,7 @@ export async function GET() {
     memberId?: string | null;
     membership?: string | null;
   };
+  const s = session as typeof session & { groups?: string[] };
   return NextResponse.json({
     user: {
       id: u.id,
@@ -21,6 +22,7 @@ export async function GET() {
       kind: u.kind ?? null,
       memberId: u.memberId ?? null,
       membership: u.membership ?? null,
+      groups: s.groups ?? [],
     },
     expiresAt: session.session.expiresAt,
   });

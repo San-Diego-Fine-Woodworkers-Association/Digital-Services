@@ -43,6 +43,7 @@ export async function GET() {
       id: u.id,
       email: u.email,
       name: u.name,
+      groups: v?.groups ?? [],
       volunteer: v ?? null,
     });
   }
