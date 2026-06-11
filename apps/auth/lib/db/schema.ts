@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -41,6 +41,11 @@ export const volunteersTable = pgTable("volunteers", {
   email: text("email").notNull(),
   name: text("name"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  groups: text("groups")
+    .array()
+    .notNull()
+    .default(sql`'{}'::text[]`),
+  lastGroupsSyncAt: timestamp("last_groups_sync_at"),
 });
 
 /**
