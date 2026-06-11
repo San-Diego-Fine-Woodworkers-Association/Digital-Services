@@ -99,12 +99,21 @@ const baseOptions = {
 } satisfies BetterAuthOptions;
 
 const customSessionPlugin = customSession(async ({ user, session }) => {
+  let groups: string[] = [];
+  if (user.kind === "volunteer") {
+    const [v] = await db
+      .select({ groups: volunteersTable.groups })
+      .from(volunteersTable)
+      .where(eq(volunteersTable.userId, user.id));
+    groups = v?.groups ?? [];
+  }
   return {
     user,
     session,
     kind: user.kind ?? null,
     memberId: user.memberId ?? null,
     membership: user.membership ?? null,
+    groups,
   };
 }, baseOptions);
 
