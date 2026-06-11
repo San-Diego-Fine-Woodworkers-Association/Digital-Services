@@ -5,6 +5,8 @@ import { eq } from "drizzle-orm";
 
 import { db, user as userTable, volunteersTable } from "@/lib/db";
 import { memberLoginPlugin } from "./auth/member-login-plugin";
+import { fetchUserGroups } from "./google/admin-client";
+import { log } from "./observability";
 
 const ALLOWED_GOOGLE_HD = "sdfwa.org";
 
@@ -59,6 +61,25 @@ const baseOptions = {
               name: u.name,
             })
             .onConflictDoNothing();
+
+          const result = await fetchUserGroups(u.email);
+          if (result.status === "ok") {
+            await db
+              .update(volunteersTable)
+              .set({ groups: result.groups, lastGroupsSyncAt: new Date() })
+              .where(eq(volunteersTable.userId, u.id));
+            log("info", "volunteer_groups_synced", {
+              userId: u.id,
+              groupCount: result.groups.length,
+            });
+          } else if (result.status === "not_found") {
+            log("warn", "volunteer_not_in_workspace_on_signin", {
+              userId: u.id,
+              email: u.email,
+            });
+          }
+          // status === "skipped" (no creds) or "error" — leave previous groups
+          // intact; the staleness re-sync in enforceActiveOrRevoke will retry.
         },
       },
     },
