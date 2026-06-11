@@ -17,7 +17,7 @@ export const user = pgTable("user", {
   banExpires: timestamp("ban_expires"),
   kind: text("kind"),
   memberId: text("member_id").unique(),
-  tier: text("tier"),
+  membership: text("membership"),
 });
 
 export const session = pgTable(

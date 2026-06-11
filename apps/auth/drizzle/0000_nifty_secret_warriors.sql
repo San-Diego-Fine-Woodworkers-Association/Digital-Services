@@ -39,7 +39,7 @@ CREATE TABLE "user" (
 	"ban_expires" timestamp,
 	"kind" text,
 	"member_id" text,
-	"tier" text,
+	"membership" text,
 	CONSTRAINT "user_member_id_unique" UNIQUE("member_id")
 );
 --> statement-breakpoint
@@ -63,14 +63,14 @@ CREATE TABLE "magic_link_tokens" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "members" (
+CREATE TABLE "proclass_users" (
 	"member_id" text PRIMARY KEY NOT NULL,
 	"email" text NOT NULL,
 	"phone" text,
 	"first_name" text,
 	"last_name" text,
 	"address" text,
-	"tier" text,
+	"membership" text,
 	"member_since" date,
 	"active" boolean DEFAULT true NOT NULL,
 	"last_synced_at" timestamp DEFAULT now() NOT NULL

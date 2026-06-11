@@ -11,7 +11,7 @@ export const db = drizzle(process.env.DATABASE_CONNECTION_STRING!, {
 });
 
 export {
-  membersTable,
+  proclassUsersTable,
   volunteersTable,
   trustedDevicesTable,
   magicLinkTokensTable,

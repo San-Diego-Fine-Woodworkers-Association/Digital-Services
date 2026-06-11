@@ -1,5 +1,5 @@
 {
-  "id": "e1a11497-f5ff-4375-b044-0c0e4d1b26ae",
+  "id": "6713044c-e25c-41b9-a52c-136af50b61c6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -306,8 +306,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "tier": {
-          "name": "tier",
+        "membership": {
+          "name": "membership",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -473,8 +473,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.members": {
-      "name": "members",
+    "public.proclass_users": {
+      "name": "proclass_users",
       "schema": "",
       "columns": {
         "member_id": {
@@ -513,8 +513,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "tier": {
-          "name": "tier",
+        "membership": {
+          "name": "membership",
           "type": "text",
           "primaryKey": false,
           "notNull": false

@@ -13,17 +13,17 @@ import {
 import { user } from "./auth-schema";
 
 /**
- * Mirror of ProClass contacts joined with their primary membership.
+ * Mirror of ProClass contacts joined with their primary membership (if any).
  * Owned by the hourly ETL; never written from a sign-in path.
  */
-export const membersTable = pgTable("members", {
+export const proclassUsersTable = pgTable("proclass_users", {
   memberId: text("member_id").primaryKey(),
   email: text("email").notNull(),
   phone: text("phone"),
   firstName: text("first_name"),
   lastName: text("last_name"),
   address: text("address"),
-  tier: text("tier"),
+  membership: text("membership"),
   memberSince: date("member_since"),
   active: boolean("active").notNull().default(true),
   lastSyncedAt: timestamp("last_synced_at").notNull().defaultNow(),
