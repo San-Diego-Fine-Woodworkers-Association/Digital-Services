@@ -1,17 +1,23 @@
 import { eq } from "drizzle-orm";
 
 import { auth } from "@/lib/auth";
-import { db, proclassUsersTable } from "@/lib/db";
+import { db, proclassUsersTable, volunteersTable } from "@/lib/db";
+import { fetchUserGroups } from "@/lib/google/admin-client";
 import { log } from "@/lib/observability";
 
 type EnforcedSession = Awaited<ReturnType<typeof auth.api.getSession>>;
 
+const GROUPS_STALE_MS = 10 * 60 * 1000;
+
 /**
- * For member sessions, re-read proclass_users.active. If the member has been
- * deactivated by the hourly ETL, kill their Better-Auth session so subsequent
- * requests across the SSO surface come back as anonymous.
+ * Hot-path revocation + freshness check, run on every public session/JWT read.
  *
- * Returns the original session if still valid; null if it was revoked.
+ * - Members: re-reads proclass_users.active; revokes if the ETL has soft-deleted them.
+ * - Volunteers: re-syncs groups from Workspace when last_groups_sync_at is older
+ *   than GROUPS_STALE_MS, and revokes only if Workspace returns 404 (user removed).
+ *   Transient Admin API errors do not revoke.
+ *
+ * Returns the original session if still valid; null if revoked.
  */
 export async function enforceActiveOrRevoke(
   session: EnforcedSession,
@@ -20,21 +26,59 @@ export async function enforceActiveOrRevoke(
   const u = session.user as typeof session.user & {
     kind?: string | null;
     memberId?: string | null;
+    email: string;
   };
-  if (u.kind !== "member" || !u.memberId) return session;
 
-  const [member] = await db
-    .select({ active: proclassUsersTable.active })
-    .from(proclassUsersTable)
-    .where(eq(proclassUsersTable.memberId, u.memberId));
+  if (u.kind === "member" && u.memberId) {
+    const [member] = await db
+      .select({ active: proclassUsersTable.active })
+      .from(proclassUsersTable)
+      .where(eq(proclassUsersTable.memberId, u.memberId));
 
-  if (member?.active) return session;
+    if (member?.active) return session;
 
-  const ctx = await auth.$context;
-  await ctx.internalAdapter.deleteSession(session.session.token);
-  log("warn", "session_revoked_inactive_member", {
-    userId: u.id,
-    memberId: u.memberId,
-  });
-  return null;
+    const ctx = await auth.$context;
+    await ctx.internalAdapter.deleteSession(session.session.token);
+    log("warn", "session_revoked_inactive_member", {
+      userId: u.id,
+      memberId: u.memberId,
+    });
+    return null;
+  }
+
+  if (u.kind === "volunteer") {
+    const [v] = await db
+      .select({ lastGroupsSyncAt: volunteersTable.lastGroupsSyncAt })
+      .from(volunteersTable)
+      .where(eq(volunteersTable.userId, u.id));
+
+    const stale =
+      !v?.lastGroupsSyncAt ||
+      Date.now() - v.lastGroupsSyncAt.getTime() > GROUPS_STALE_MS;
+
+    if (!stale) return session;
+
+    const result = await fetchUserGroups(u.email);
+    if (result.status === "ok") {
+      await db
+        .update(volunteersTable)
+        .set({ groups: result.groups, lastGroupsSyncAt: new Date() })
+        .where(eq(volunteersTable.userId, u.id));
+      return session;
+    }
+    if (result.status === "not_found") {
+      const ctx = await auth.$context;
+      await ctx.internalAdapter.deleteSession(session.session.token);
+      log("warn", "session_revoked_volunteer_not_in_workspace", {
+        userId: u.id,
+        email: u.email,
+      });
+      return null;
+    }
+    // status === "skipped" (no creds) or "error" — leave session alive,
+    // groups stay at last-known values.
+    return session;
+  }
+
+  return session;
 }
