@@ -1,0 +1,33 @@
+{
+  "name": "@sdfwa/auth-client",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "jose": "^5.9.6"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "@types/react": "^19.2.13",
+    "@sdfwa/eslint-config": "workspace:*",
+    "@sdfwa/typescript-config": "workspace:*",
+    "eslint": "^9.39.2",
+    "react": "^19.2.4",
+    "typescript": "^5.9.3"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts",
+    "./client": "./src/client.tsx",
+    "./types": "./src/types.ts"
+  }
+}
