@@ -202,16 +202,22 @@ export const memberLoginPlugin = () => {
             expiresAt,
           });
 
-          await sendMagicLink({
-            to: member.email,
-            url: buildConfirmUrl(token),
-            firstName: member.firstName ?? null,
-          });
+          const url = buildConfirmUrl(token);
+          const isDev = process.env.NODE_ENV !== "production";
+
+          if (!isDev) {
+            await sendMagicLink({
+              to: member.email,
+              url,
+              firstName: member.firstName ?? null,
+            });
+          }
 
           return ctx.json({
             status: "magic_link_pending" as const,
             pollToken,
             expiresAt: expiresAt.toISOString(),
+            devMagicLinkUrl: isDev ? url : undefined,
           });
         },
       ),
