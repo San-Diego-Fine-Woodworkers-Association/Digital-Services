@@ -68,6 +68,7 @@ You need valid `PROCLASS_USERNAME` / `PROCLASS_PASSWORD` for this. See
 | `SERVICE_TOKEN` | Bearer token for back-channel `/api/user/[memberId]` calls. |
 | `POST_LOGIN_DEFAULT_REDIRECT` | Where to land users with no `?redirect=` param. Dev points at `/debug`. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | See [docs/google-oauth.md](docs/google-oauth.md). |
+| `GOOGLE_SERVICE_ACCOUNT_JSON_B64` / `GOOGLE_ADMIN_IMPERSONATION_SUBJECT` | Optional in dev. Enables Workspace-Group sync for volunteers. See [docs/workspace-groups.md](docs/workspace-groups.md). |
 | `PROCLASS_USERNAME` / `PROCLASS_PASSWORD` | Basic-auth credentials for the ProClass API. |
 | `RESEND_API_KEY` | Optional in dev (no emails sent). Required in prod. |
 | `EMAIL_FROM` | `no-reply@auth.sdfwa.org`. |
@@ -105,6 +106,8 @@ apps/auth
   `shop-ops`, and future apps consume sessions via `@sdfwa/auth-client`.
 - [Google OAuth setup](docs/google-oauth.md) — Google Cloud Console steps for
   the volunteer flow.
+- [Workspace groups](docs/workspace-groups.md) — group-based entitlements for
+  volunteers via the Admin SDK.
 - [Dokploy deployment](docs/dokploy-deployment.md) — production checklist.
 
 ## Tests

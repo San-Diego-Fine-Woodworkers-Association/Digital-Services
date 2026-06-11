@@ -63,6 +63,8 @@ never be checked into git.
 | `POST_LOGIN_DEFAULT_REDIRECT` | `https://www.sdfwa.org` |
 | `GOOGLE_CLIENT_ID` | From the prod OAuth client (see [google-oauth.md](google-oauth.md)) |
 | `GOOGLE_CLIENT_SECRET` (secret) | Same |
+| `GOOGLE_SERVICE_ACCOUNT_JSON_B64` (secret) | `base64 -w0` of the downloaded service-account JSON. See [workspace-groups.md](workspace-groups.md). |
+| `GOOGLE_ADMIN_IMPERSONATION_SUBJECT` | Email of the Workspace user the service account impersonates when querying the Admin SDK, e.g. `tech-admin@sdfwa.org`. |
 | `PROCLASS_USERNAME` (secret) | Prod ProClass API user |
 | `PROCLASS_PASSWORD` (secret) | Prod ProClass API password |
 | `RESEND_API_KEY` (secret) | Production Resend API key (verified-domain key) |

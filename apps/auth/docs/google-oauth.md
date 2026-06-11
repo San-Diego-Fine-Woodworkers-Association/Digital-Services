@@ -75,6 +75,14 @@ If a non-Workspace `@gmail.com` user tries:
 - If it's **External**, our `mapProfileToUser` throws and Better-Auth
   surfaces an error to the user.
 
+## Workspace groups (volunteer entitlements)
+
+The OAuth client above only handles sign-in. To also read each volunteer's
+Google Groups for group-based access control, set up a separate **service
+account with Domain-Wide Delegation** — no additional user-facing scopes are
+added; the DWD flow is server-to-server. See
+[workspace-groups.md](workspace-groups.md) for the walkthrough.
+
 ## Rotating the client secret
 
 If the secret leaks: in the Credentials console, "Reset Secret" on the same

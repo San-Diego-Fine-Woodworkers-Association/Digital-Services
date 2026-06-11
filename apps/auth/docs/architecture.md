@@ -47,6 +47,16 @@ with the Google `sub`. Members do **not** have a row in `volunteers`; their
 detail comes from `proclass_users` joined by `memberId`. Accounts are never
 auto-linked across the two flows even if the email matches.
 
+### Workspace groups
+
+Volunteers also carry a `groups: string[]` — the `@sdfwa.org` Google Groups
+they belong to. The auth app reads them from the Admin SDK on sign-in and
+re-syncs lazily (≤10 min staleness) on subsequent session/JWT reads. Groups
+ride on every `/api/session`, `/api/user`, and JWT payload, so consumer apps
+gate features with `requireGroup` / `hasGroup` from `@sdfwa/auth-client`
+without keeping their own role tables. See
+[workspace-groups.md](workspace-groups.md).
+
 ## Member sign-in (magic-link device trust)
 
 The first time a member signs in from a new browser, the plugin issues a
@@ -80,7 +90,7 @@ Better-Auth's `jwt` plugin publishes a JWKS at `/api/auth/jwks` (EdDSA key
 pair persisted in the `jwks` table, rotated by Better-Auth on its own
 schedule). `POST /api/auth/jwt-refresh` mints a short-lived (15 min by
 default) JWT for the current session, with claims including `sub`, `email`,
-`kind`, `memberId`, `membership`. Consumer apps can verify the JWT locally
+`kind`, `memberId`, `membership`, `groups`. Consumer apps can verify the JWT locally
 via `verifyJwt()` from `@sdfwa/auth-client` — no round-trip to the auth app
 on the hot path.
 
@@ -97,10 +107,11 @@ worst-case window between a member being deactivated in ProClass and losing
 access is one ETL cycle (default hourly) plus the next consumer-side
 request.
 
-Volunteer revocation is enforced one level up by Google Workspace: when a
-volunteer's Workspace account is disabled, the Google `id_token` refresh
-fails and they cannot re-establish a session. Existing sessions ride out
-until their `expires_at` (default 7 days).
+For volunteers, the same hook re-syncs groups when the cached set is older
+than 10 minutes, and revokes the session if the Admin SDK reports the user no
+longer exists in Workspace (HTTP 404). Transient Admin API errors leave the
+session intact. Group **removals** propagate within ~10 minutes; account
+removals propagate within the same window.
 
 ## Cookies
 

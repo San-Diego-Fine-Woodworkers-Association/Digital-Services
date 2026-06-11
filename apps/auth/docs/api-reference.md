@@ -112,11 +112,15 @@ Cheap session summary for client hooks. Always 200.
     "email": "...",
     "kind": "member" | "volunteer" | null,
     "memberId": "..." | null,
-    "membership": "..." | null
+    "membership": "..." | null,
+    "groups": ["tech-admin@sdfwa.org", ...]
   },
   "expiresAt": "<ISO>"
 }
 ```
+
+`groups` is always an array — `[]` for members, anonymous, and volunteers
+without group memberships. See [workspace-groups.md](workspace-groups.md).
 
 Or `{ "user": null }` when signed out.
 
@@ -145,7 +149,8 @@ For volunteers:
   "id": "...",
   "email": "...",
   "name": "...",
-  "volunteer": { /* full volunteers row, or null */ }
+  "groups": ["tech-admin@sdfwa.org", ...],
+  "volunteer": { /* full volunteers row including its own `groups`, or null */ }
 }
 ```
 
