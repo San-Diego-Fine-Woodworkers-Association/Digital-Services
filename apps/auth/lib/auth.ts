@@ -3,6 +3,7 @@ import { customSession, jwt } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
 import { db } from "@/lib/db";
+import { memberLoginPlugin } from "./auth/member-login-plugin";
 
 const baseOptions = {
   database: drizzleAdapter(db, { provider: "pg" }),
@@ -23,7 +24,10 @@ const baseOptions = {
       secure: process.env.NODE_ENV === "production",
     },
   },
-  plugins: [jwt({ jwks: { keyPairConfig: { alg: "EdDSA" } } })],
+  plugins: [
+    memberLoginPlugin(),
+    jwt({ jwks: { keyPairConfig: { alg: "EdDSA" } } }),
+  ],
 } satisfies BetterAuthOptions;
 
 const customSessionPlugin = customSession(async ({ user, session }) => {
