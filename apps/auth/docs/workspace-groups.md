@@ -57,20 +57,32 @@ One-time. Requires a Workspace super-admin.
 1. **GCP project**: in the same project as the OAuth client (e.g. "SDFWA SSO"),
    go to **IAM & Admin → Service Accounts → Create service account**.
    - Name: `auth-directory-reader`. No project roles.
-2. **Domain-wide delegation**: open the new service account, **Show advanced
-   settings**, copy the **Client ID** (a long numeric string).
-3. **Workspace admin console** (admin.google.com):
+2. **Enable the Admin SDK API** in the same GCP project: **APIs & Services →
+   Enabled APIs & services → + Enable APIs and Services → search "Admin SDK
+   API" → Enable**. Without this the Directory API returns 403 even with DWD
+   correctly set up.
+3. **Domain-wide delegation**: open the new service account, **Show advanced
+   settings**, copy the **Client ID** (a long numeric string, ~21 digits — not
+   the service account email).
+4. **Workspace admin console** (admin.google.com):
    - **Security → Access and data control → API controls → Manage Domain Wide
      Delegation**.
    - **Add new**.
-   - Paste the Client ID from step 2.
+   - Paste the Client ID from step 3.
    - OAuth scopes: `https://www.googleapis.com/auth/admin.directory.group.readonly`
-4. **Service account key**: back in GCP, on the service account, **Keys → Add
+5. **Service account key**: back in GCP, on the service account, **Keys → Add
    key → Create new key → JSON**. Download.
-5. **Impersonation subject**: pick a Workspace user the service account will
-   impersonate when querying — must have permission to read the directory.
-   `tech-admin@sdfwa.org` is fine. The user does not need to log in anywhere;
-   they just need to exist and not be suspended.
+6. **Impersonation subject**: pick a real Workspace **user** (not a group, not
+   an alias) the service account will impersonate. The user does not need to
+   log in anywhere; they just need to exist and not be suspended.
+7. **Grant the impersonation subject an admin role with directory-read
+   permission.** DWD lets the service account act *as* the user, but it does
+   not grant the user any new powers. In **admin.google.com → Account → Admin
+   roles**, assign the impersonation subject the **Groups Reader** prebuilt
+   role (least-privilege option), or a custom role with just *Admin API
+   privileges → Groups → Read*. Avoid Super Admin — DWD makes the subject's
+   privileges reachable from the app's env. Without this the Directory API
+   returns 403 "Not Authorized to access this resource/api".
 
 ## Env vars
 
@@ -126,8 +138,9 @@ Reference page: `apps/diw/app/whoami/admin-only/page.tsx`.
 | Symptom | Cause |
 | --- | --- |
 | Log: `google_admin_config_missing` | One of the env vars is unset. |
-| Log: `google_admin_token_exchange_failed` with `unauthorized_client` | DWD not authorized in Workspace admin console, or wrong scope listed there. |
-| Log: `google_admin_token_exchange_failed` with `invalid_grant` | Impersonation subject is suspended or doesn't exist. |
+| Log: `google_admin_token_exchange_failed` with `unauthorized_client` | DWD not authorized in Workspace admin console; wrong Client ID (must be the service account's numeric OAuth client ID, not its email); or wrong scope listed there. |
+| Log: `google_admin_token_exchange_failed` with `invalid_grant` | Impersonation subject is suspended, doesn't exist, or is a group/alias rather than a real user. |
+| Log: `google_admin_groups_fetch_failed` with status 403 `"Not Authorized to access this resource/api"` | Either the Admin SDK API is not enabled in the GCP project, or the impersonation subject lacks an admin role with Groups → Read. Setup steps 2 and 7. |
 | Volunteer signs in but `groups` is `[]` | Either DWD not set up yet, or the user is not in any `@sdfwa.org` group. Test with `/api/Contacts`-style direct call via the script in [verification](#verification). |
 | `session_revoked_volunteer_not_in_workspace` for an active user | Impersonation subject lacks permission to read other users (rare — promote them or pick a different subject). |
 
