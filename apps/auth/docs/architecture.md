@@ -50,7 +50,7 @@ auto-linked across the two flows even if the email matches.
 ### Workspace groups
 
 Volunteers also carry a `groups: string[]` — the bare names of the `@sdfwa.org`
-Google Groups they belong to (e.g. `"tech-admin"`; the suffix is stripped at
+Google Groups they belong to (e.g. `"digital-services"`; the suffix is stripped at
 the boundary). The auth app reads them from the Admin SDK on sign-in and
 re-syncs lazily (≤10 min staleness) on subsequent session/JWT reads. Groups
 ride on every `/api/session`, `/api/user`, and JWT payload, so consumer apps

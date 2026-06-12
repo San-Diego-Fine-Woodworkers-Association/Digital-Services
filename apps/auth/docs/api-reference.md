@@ -113,7 +113,7 @@ Cheap session summary for client hooks. Always 200.
     "kind": "member" | "volunteer" | null,
     "memberId": "..." | null,
     "membership": "..." | null,
-    "groups": ["tech-admin", ...]
+    "groups": ["digital-services", ...]
   },
   "expiresAt": "<ISO>"
 }
@@ -149,7 +149,7 @@ For volunteers:
   "id": "...",
   "email": "...",
   "name": "...",
-  "groups": ["tech-admin", ...],
+  "groups": ["digital-services", ...],
   "volunteer": { /* full volunteers row including its own `groups`, or null */ }
 }
 ```

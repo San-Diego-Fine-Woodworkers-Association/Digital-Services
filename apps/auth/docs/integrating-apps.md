@@ -75,9 +75,9 @@ Use `requireGroup` for server-side route protection:
 ```ts
 import { requireGroup } from "@sdfwa/auth-client/server";
 
-await requireGroup(cookieHeader, "tech-admin");
+await requireGroup(cookieHeader, "digital-services");
 // or any-of:
-await requireGroup(cookieHeader, ["tech-admin", "shop-managers"]);
+await requireGroup(cookieHeader, ["digital-services", "shop-managers"]);
 ```
 
 For middleware or client-side checks (no fetch), use the pure predicates from
@@ -86,7 +86,7 @@ the main entry point:
 ```ts
 import { hasGroup, hasAnyGroup, hasAllGroups } from "@sdfwa/auth-client";
 
-if (!hasGroup(session.user.groups, "tech-admin")) return null;
+if (!hasGroup(session.user.groups, "digital-services")) return null;
 ```
 
 All predicates are default-closed: empty `userGroups` or empty `allowed`/`required`

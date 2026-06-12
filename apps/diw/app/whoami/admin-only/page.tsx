@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 
 import { requireGroup } from "@sdfwa/auth-client/server";
 
-const REQUIRED_GROUP = "tech-admin";
+const REQUIRED_GROUP = "digital-services";
 
 export default async function AdminOnlyPage() {
   const cookieHeader = (await cookies())
