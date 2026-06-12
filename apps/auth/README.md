@@ -40,7 +40,7 @@ the only social provider.
 6. Visit `/login` to exercise the flows. In dev, magic-link emails are **not
    sent** — the URL is returned in the API response and rendered on the
    pending screen with a "DEV ONLY" banner.
-7. Visit `/debug` (dev only) to inspect the current session, device cookie,
+7. Visit `/whoami` to inspect the current session, device cookie,
    user row, trusted-devices list, and volunteer row.
 
 To populate member records for sign-in testing, trigger the ETL once:
@@ -66,7 +66,7 @@ You need valid `PROCLASS_USERNAME` / `PROCLASS_PASSWORD` for this. See
 | `COOKIE_DOMAIN` | `localhost` in dev, `.sdfwa.org` in prod. |
 | `CRON_SECRET` | Bearer token the Dokploy hourly cron presents to `/api/cron/proclass-sync`. |
 | `SERVICE_TOKEN` | Bearer token for back-channel `/api/user/[memberId]` calls. |
-| `POST_LOGIN_DEFAULT_REDIRECT` | Where to land users with no `?redirect=` param. Dev points at `/debug`. |
+| `POST_LOGIN_DEFAULT_REDIRECT` | Where to land users with no `?redirect=` param. Dev points at `/whoami`. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | See [docs/google-oauth.md](docs/google-oauth.md). |
 | `GOOGLE_SERVICE_ACCOUNT_JSON_B64` / `GOOGLE_ADMIN_IMPERSONATION_SUBJECT` | Optional in dev. Enables Workspace-Group sync for volunteers. See [docs/workspace-groups.md](docs/workspace-groups.md). |
 | `PROCLASS_USERNAME` / `PROCLASS_PASSWORD` | Basic-auth credentials for the ProClass API. |
@@ -79,7 +79,7 @@ You need valid `PROCLASS_USERNAME` / `PROCLASS_PASSWORD` for this. See
 apps/auth
 ├── app/                       # Next.js App Router
 │   ├── api/                   # Public + internal HTTP endpoints
-│   ├── debug/                 # Dev-only inspector (404 in prod)
+│   ├── whoami/                # Auth session inspector
 │   └── login/                 # /login UI
 ├── components/login-form.tsx  # Member + Google form
 ├── drizzle/                   # SQL migrations

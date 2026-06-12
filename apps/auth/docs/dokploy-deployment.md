@@ -130,7 +130,7 @@ GitHub Actions will:
 | --- | --- |
 | `curl https://auth.sdfwa.org/api/auth/jwks` | One EdDSA key. |
 | Visit `https://auth.sdfwa.org/login` | Login form. |
-| Visit `https://auth.sdfwa.org/debug` | 404 (dev-only route disabled in prod). |
+| Visit `https://auth.sdfwa.org/whoami` | Logged in details displayed, otherwise (not signed in). |
 | Visit `https://auth.sdfwa.org/api/cron/proclass-sync` (no auth) | 401. |
 | Member flow with a real ProClass member | Email arrives; original tab signs in via polling. |
 | Volunteer flow with a real `@sdfwa.org` Google account | `kind: "volunteer"`, `volunteers` row inserted. |

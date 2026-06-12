@@ -54,7 +54,7 @@ After restarting the dev server:
 curl -sS -X POST http://localhost:3002/api/auth/sign-in/social \
   -H "Content-Type: application/json" \
   -H "Origin: http://localhost:3002" \
-  -d '{"provider":"google","callbackURL":"http://localhost:3002/debug"}'
+  -d '{"provider":"google","callbackURL":"http://localhost:3002/whoami"}'
 ```
 
 You should get `{ "url": "https://accounts.google.com/o/oauth2/v2/auth?…", "redirect": true }`
@@ -66,7 +66,7 @@ End-to-end test (browser, can't be curled):
 2. Enter `you@sdfwa.org`. The form should swap to a "Continue with Google"
    button (no Member ID input).
 3. Click → Google consent → bounced back.
-4. `/debug` should show `kind: "volunteer"`, a `volunteers` table row with
+4. `/whoami` should show `kind: "volunteer"`, a `volunteers` table row with
    your Google `sub`, and an `account` row with `provider_id: "google"`.
 
 If a non-Workspace `@gmail.com` user tries:
