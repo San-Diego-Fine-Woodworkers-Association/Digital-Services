@@ -7,7 +7,7 @@ import { db, trustedDevicesTable, user as userTable, volunteersTable } from "@/l
 
 import { SignOutButton } from "./sign-out-button";
 
-export default async function DebugPage() {
+export default async function AuthDebug() {
   if (process.env.NODE_ENV === "production") notFound();
 
   const session = await getServerSession();
