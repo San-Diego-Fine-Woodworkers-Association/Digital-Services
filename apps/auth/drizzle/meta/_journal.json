@@ -15,6 +15,13 @@
       "when": 1781200678677,
       "tag": "0001_sour_weapon_omega",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781221801589,
+      "tag": "0002_tan_christian_walker",
+      "breakpoints": true
     }
   ]
 }

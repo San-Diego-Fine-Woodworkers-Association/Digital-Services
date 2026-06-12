@@ -18,6 +18,11 @@ export const user = pgTable("user", {
   kind: text("kind"),
   memberId: text("member_id").unique(),
   membership: text("membership"),
+  // Mirror of volunteers.groups, JSON-stringified, so Better-Auth carries
+  // groups on the user object without any session-build-time DB query
+  // (which triggers an RSC Flight bug under Next 16.1.6 + Turbopack).
+  // Kept in sync transactionally with volunteers.groups.
+  groupsJson: text("groups_json").notNull().default("[]"),
 });
 
 export const session = pgTable(

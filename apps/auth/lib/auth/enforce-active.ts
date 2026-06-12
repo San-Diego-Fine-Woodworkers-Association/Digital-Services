@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { auth } from "@/lib/auth";
+import { auth, syncVolunteerGroups } from "@/lib/auth";
 import { db, proclassUsersTable, volunteersTable } from "@/lib/db";
 import { fetchUserGroups } from "@/lib/google/admin-client";
 import { log } from "@/lib/observability";
@@ -60,10 +60,7 @@ export async function enforceActiveOrRevoke(
 
     const result = await fetchUserGroups(u.email);
     if (result.status === "ok") {
-      await db
-        .update(volunteersTable)
-        .set({ groups: result.groups, lastGroupsSyncAt: new Date() })
-        .where(eq(volunteersTable.userId, u.id));
+      await syncVolunteerGroups(u.id, result.groups);
       return session;
     }
     if (result.status === "not_found") {

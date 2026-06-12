@@ -10,6 +10,45 @@ import { log } from "./observability";
 
 const ALLOWED_GOOGLE_HD = "sdfwa.org";
 
+/**
+ * Parse a `user.groupsJson` text column into a string[]. Defaults to [] on
+ * any malformed value. Synchronous so callers used inside session-build
+ * hooks (customSession, jwt.definePayload) stay free of awaits — an async
+ * DB read in those paths trips an RSC Flight bug in Next 16.1.6 + Turbopack.
+ */
+function parseGroupsJson(value: unknown): string[] {
+  if (typeof value !== "string" || value.length === 0) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((g): g is string => typeof g === "string");
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Atomically write the latest groups snapshot for a volunteer to both the
+ * `volunteers` row (canonical) and the `user.groupsJson` mirror. The mirror
+ * is what session-build hooks read at runtime; keeping the two halves in a
+ * single transaction prevents drift.
+ */
+async function syncVolunteerGroups(
+  userId: string,
+  groups: string[],
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx
+      .update(volunteersTable)
+      .set({ groups, lastGroupsSyncAt: new Date() })
+      .where(eq(volunteersTable.userId, userId));
+    await tx
+      .update(userTable)
+      .set({ groupsJson: JSON.stringify(groups) })
+      .where(eq(userTable.id, userId));
+  });
+}
+
 const baseOptions = {
   database: drizzleAdapter(db, { provider: "pg" }),
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3002",
@@ -19,6 +58,7 @@ const baseOptions = {
       kind: { type: "string" },
       memberId: { type: "string" },
       membership: { type: "string" },
+      groupsJson: { type: "string" },
     },
   },
   socialProviders: {
@@ -64,10 +104,7 @@ const baseOptions = {
 
           const result = await fetchUserGroups(u.email);
           if (result.status === "ok") {
-            await db
-              .update(volunteersTable)
-              .set({ groups: result.groups, lastGroupsSyncAt: new Date() })
-              .where(eq(volunteersTable.userId, u.id));
+            await syncVolunteerGroups(u.id, result.groups);
             log("info", "volunteer_groups_synced", {
               userId: u.id,
               groupCount: result.groups.length,
@@ -94,26 +131,40 @@ const baseOptions = {
   },
   plugins: [
     memberLoginPlugin(),
-    jwt({ jwks: { keyPairConfig: { alg: "EdDSA" } } }),
+    jwt({
+      jwks: { keyPairConfig: { alg: "EdDSA" } },
+      jwt: {
+        // Sync: no awaits, no DB calls. Reads from user.groupsJson which
+        // Better-Auth has already loaded with the user row.
+        definePayload: ({ user }) => {
+          const u = user as typeof user & {
+            kind?: string | null;
+            memberId?: string | null;
+            membership?: string | null;
+            groupsJson?: string;
+          };
+          return {
+            email: user.email,
+            kind: u.kind ?? null,
+            memberId: u.memberId ?? null,
+            membership: u.membership ?? null,
+            groups: parseGroupsJson(u.groupsJson),
+          };
+        },
+      },
+    }),
   ],
 } satisfies BetterAuthOptions;
 
 const customSessionPlugin = customSession(async ({ user, session }) => {
-  let groups: string[] = [];
-  if (user.kind === "volunteer") {
-    const [v] = await db
-      .select({ groups: volunteersTable.groups })
-      .from(volunteersTable)
-      .where(eq(volunteersTable.userId, user.id));
-    groups = v?.groups ?? [];
-  }
+  const u = user as typeof user & { groupsJson?: string };
   return {
     user,
     session,
     kind: user.kind ?? null,
     memberId: user.memberId ?? null,
     membership: user.membership ?? null,
-    groups,
+    groups: parseGroupsJson(u.groupsJson),
   };
 }, baseOptions);
 
@@ -121,3 +172,5 @@ export const auth = betterAuth({
   ...baseOptions,
   plugins: [...baseOptions.plugins, customSessionPlugin],
 });
+
+export { syncVolunteerGroups };
