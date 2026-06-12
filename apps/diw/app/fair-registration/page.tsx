@@ -4,7 +4,7 @@ import { Skeleton } from "@sdfwa/ui/components/skeleton";
 import { getActiveFair, getRolesWithSlots } from "@/lib/actions/fair";
 import { getMyRegistrations } from "@/lib/actions/registration";
 import { getContactInfo } from "@/lib/actions/contact";
-import { getServerSession } from "@/lib/auth/get-session";
+import { getSession } from "@/lib/auth/session";
 import { FairRegistrationClient } from "./fair-registration-client";
 
 async function FairRegistrationContent() {
@@ -22,18 +22,18 @@ async function FairRegistrationContent() {
 		);
 	}
 
-	const session = await getServerSession();
+	const session = await getSession();
 	const roles = await getRolesWithSlots(fair.id);
 	const [userRegistrations, contactInfo] = await Promise.all([
-		session?.user ? getMyRegistrations() : Promise.resolve([]),
-		session?.user ? getContactInfo(fair.id) : Promise.resolve(null),
+		session ? getMyRegistrations() : Promise.resolve([]),
+		session ? getContactInfo(fair.id) : Promise.resolve(null),
 	]);
 
 	return (
 		<FairRegistrationClient
 			roles={roles}
-			isLoggedIn={!!session?.user}
-			userId={session?.user?.id ?? null}
+			isLoggedIn={!!session}
+			memberId={session?.user.memberId ?? null}
 			userRegistrations={userRegistrations}
 			fairStartDate={fair.startDate}
 			fairEndDate={fair.endDate}

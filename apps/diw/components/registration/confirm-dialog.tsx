@@ -1,11 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { CalendarPlus } from "lucide-react";
 import { Button } from "@sdfwa/ui/components/button";
-import { Input } from "@sdfwa/ui/components/input";
-import { Label } from "@sdfwa/ui/components/label";
-import { Textarea } from "@sdfwa/ui/components/textarea";
 import {
 	Dialog,
 	DialogContent,
@@ -29,10 +25,10 @@ interface ConfirmDialogProps {
 	phase: "confirm" | "contact" | "success" | null;
 	loading: boolean;
 	onConfirm: () => void;
-	onContactConfirm: (address: string, phone: string) => void;
+	onContactConfirm: () => void;
 	onClose: () => void;
-	initialAddress: string;
-	initialPhone: string;
+	address: string;
+	phone: string;
 }
 
 function formatTime(d: Date | string) {
@@ -47,11 +43,7 @@ function formatDate(d: string) {
 	});
 }
 
-export function ConfirmDialog({ slot, phase, loading, onConfirm, onContactConfirm, onClose, initialAddress, initialPhone }: ConfirmDialogProps) {
-	const [address, setAddress] = useState(initialAddress);
-	const [phone, setPhone] = useState(initialPhone);
-	const [phoneError, setPhoneError] = useState<string | null>(null);
-
+export function ConfirmDialog({ slot, phase, loading, onConfirm, onContactConfirm, onClose, address, phone }: ConfirmDialogProps) {
 	const slotLabel = slot
 		? `${slot.roleName} on ${formatDate(slot.date)}, ${formatTime(slot.startTime)} – ${formatTime(slot.endTime)}`
 		: "";
@@ -93,47 +85,23 @@ export function ConfirmDialog({ slot, phase, loading, onConfirm, onContactConfir
 						<DialogHeader>
 							<DialogTitle>Confirm Your Contact Details</DialogTitle>
 							<DialogDescription>
-								Please verify your address and phone number before completing registration.
+								Please verify the address and phone number on file in ProClass. If anything is wrong, update it in ProClass before registering.
 							</DialogDescription>
 						</DialogHeader>
-						<div className="space-y-4">
-							<div className="space-y-1">
-								<Label htmlFor="reg-address">Address</Label>
-								<Textarea
-									id="reg-address"
-									value={address}
-									onChange={(e) => setAddress(e.target.value)}
-									placeholder="Street address"
-									rows={2}
-									disabled={loading}
-								/>
+						<dl className="space-y-3 text-sm">
+							<div>
+								<dt className="text-muted-foreground">Address</dt>
+								<dd className="font-medium whitespace-pre-line">{address || "(none on file)"}</dd>
 							</div>
-							<div className="space-y-1">
-								<Label htmlFor="reg-phone">Phone Number</Label>
-								<Input
-									id="reg-phone"
-									type="tel"
-									value={phone}
-									onChange={(e) => { setPhone(e.target.value); setPhoneError(null); }}
-									placeholder="(555) 555-5555"
-									disabled={loading}
-								/>
-								{phoneError && <p className="text-sm text-destructive">{phoneError}</p>}
+							<div>
+								<dt className="text-muted-foreground">Phone</dt>
+								<dd className="font-medium">{phone || "(none on file)"}</dd>
 							</div>
-						</div>
+						</dl>
 						<DialogFooter>
 							<Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
-							<Button
-								onClick={() => {
-									const digits = phone.replace(/\D/g, "");
-									const valid = digits.length === 10 || (digits.length === 11 && digits.startsWith("1"));
-									if (!address.trim()) { setPhoneError("Address is required."); return; }
-									if (!valid) { setPhoneError("Please enter a valid US phone number."); return; }
-									onContactConfirm(address, phone);
-								}}
-								disabled={loading}
-							>
-								{loading ? "Saving..." : "Confirm & Register"}
+							<Button onClick={onContactConfirm} disabled={loading}>
+								{loading ? "Saving..." : "Looks Good — Register"}
 							</Button>
 						</DialogFooter>
 					</>

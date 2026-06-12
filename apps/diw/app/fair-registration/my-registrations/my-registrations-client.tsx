@@ -27,7 +27,9 @@ import { getGoogleCalendarUrl, downloadIcsFile } from "@/lib/calendar-links";
 interface RegistrationWithSlot {
 	id: string;
 	slotId: string;
-	userId: string;
+	memberId: string;
+	name: string;
+	email: string;
 	slot: {
 		id: string;
 		date: string;

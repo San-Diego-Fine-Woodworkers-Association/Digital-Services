@@ -99,7 +99,9 @@ out instead of re-issued a JWT.
 
 ## Public read API
 
-These endpoints are CORS-enabled for `*.sdfwa.org` origins.
+These endpoints are CORS-enabled for `*.sdfwa.org` origins. The Better-Auth
+endpoints under `/api/auth/*` (including `sign-out`) are also CORS-enabled so
+consumer apps can call them from the browser.
 
 ### `GET /api/session`
 
@@ -167,6 +169,38 @@ hydrating ProClass-derived data into another app's database.
 - Required header: `Authorization: Bearer ${SERVICE_TOKEN}`.
 - No CORS, no cookies. Don't expose this to browsers.
 - Returns the full `proclass_users` row or 404.
+
+### `GET /api/users/search?q=...` (service-to-service)
+
+Member search for admin tools in consumer apps that need a "find a member by
+name / member ID / email" picker (e.g. diw's admin "Register a Member"
+dialog).
+
+- Required header: `Authorization: Bearer ${SERVICE_TOKEN}`.
+- No CORS, no cookies. Don't expose this to browsers.
+- Query param `q` (required, min 2 chars). Matches active `proclass_users`
+  by first name, last name, full name, member ID prefix, or email substring
+  (all case-insensitive).
+- Returns up to 20 results.
+
+```jsonc
+// 200
+{
+  "results": [
+    {
+      "memberId": "537906",
+      "name": "Alice Example",
+      "email": "alice@example.com",
+      "membership": "Bronze"
+    }
+  ]
+}
+```
+
+| Status | Meaning |
+| --- | --- |
+| 200 | Always returned for valid requests, including no matches (`results: []`). |
+| 401 | Missing or wrong bearer. |
 
 ### `GET /api/auth/jwks`
 

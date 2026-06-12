@@ -1,20 +1,18 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "@/lib/auth/get-session";
+import { getSession, isAdmin, loginUrl } from "@/lib/auth/session";
 
 export default async function AdminLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
-	const session = await getServerSession();
+	const session = await getSession();
 
-	if (!session?.user) {
-		redirect("/fair-registration/login?redirect=/fair-registration/admin");
+	if (!session) {
+		redirect(loginUrl("/fair-registration/admin"));
 	}
 
-	// Check admin role
-	const roles = (session as Record<string, unknown>)?.roles as string[] | undefined;
-	if (!roles?.includes("admin")) {
+	if (!isAdmin(session)) {
 		redirect("/fair-registration");
 	}
 

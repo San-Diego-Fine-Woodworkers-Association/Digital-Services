@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 import { corsHeaders } from "@/lib/cors";
 
-const PUBLIC_API_PREFIXES = ["/api/user", "/api/session"];
+const PUBLIC_API_PREFIXES = ["/api/user", "/api/session", "/api/auth"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -20,5 +20,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/user/:path*", "/api/session/:path*"],
+  matcher: ["/api/user/:path*", "/api/session/:path*", "/api/auth/:path*"],
 };

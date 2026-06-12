@@ -3,11 +3,11 @@
 import { and, eq } from "drizzle-orm";
 import { updateTag } from "next/cache";
 import { db, registrationsTable, slotsTable, userSettingsTable } from "../db";
-import { getServerSession } from "../auth/get-session";
+import { getSession, getUser } from "../auth/session";
 
-async function getUserRegistrations(userId: string) {
+async function getMemberRegistrations(memberId: string) {
 	return await db.query.registrationsTable.findMany({
-		where: eq(registrationsTable.userId, userId),
+		where: eq(registrationsTable.memberId, memberId),
 		with: {
 			slot: {
 				with: {
@@ -19,37 +19,41 @@ async function getUserRegistrations(userId: string) {
 }
 
 export async function registerForSlot(slotId: string): Promise<{ success: boolean; requiresContactValidation?: true; error?: string }> {
-	const session = await getServerSession();
-	if (!session?.user) {
+	const session = await getSession();
+	if (!session) {
 		return { success: false, error: "You must be logged in to register." };
 	}
 
-	const userId = session.user.id;
+	const memberId = session.user.memberId;
+	if (!memberId) {
+		return { success: false, error: "Only members can register for slots." };
+	}
 
 	// Server-side contact validation gate
-	if (session.user.memberId) {
-		const slotPreview = await db.query.slotsTable.findFirst({
-			where: eq(slotsTable.id, slotId),
-			columns: { id: true },
-			with: { role: { columns: { fairId: true } } },
-		});
-		const fairId = slotPreview?.role?.fairId;
+	const slotPreview = await db.query.slotsTable.findFirst({
+		where: eq(slotsTable.id, slotId),
+		columns: { id: true },
+		with: { role: { columns: { fairId: true } } },
+	});
+	const fairId = slotPreview?.role?.fairId;
 
-		if (fairId) {
-			const settings = await db.query.userSettingsTable.findFirst({
-				where: and(
-					eq(userSettingsTable.memberId, session.user.memberId),
-					eq(userSettingsTable.fairId, fairId)
-				),
-			});
-			if (!settings?.contactValidated) {
-				return { success: false, requiresContactValidation: true as const, error: "Contact details must be confirmed before registering." };
-			}
+	if (fairId) {
+		const settings = await db.query.userSettingsTable.findFirst({
+			where: and(
+				eq(userSettingsTable.memberId, memberId),
+				eq(userSettingsTable.fairId, fairId)
+			),
+		});
+		if (!settings?.contactValidated) {
+			return { success: false, requiresContactValidation: true as const, error: "Contact details must be confirmed before registering." };
 		}
 	}
 
+	const currentUser = await getUser();
+	const name = currentUser?.name ?? session.user.email;
+	const email = session.user.email;
+
 	const result = await db.transaction(async (tx) => {
-		// Get the target slot with current registrations
 		const slot = await tx.query.slotsTable.findFirst({
 			where: eq(slotsTable.id, slotId),
 			with: { registrations: true },
@@ -59,29 +63,25 @@ export async function registerForSlot(slotId: string): Promise<{ success: boolea
 			return { success: false, error: "Slot not found." };
 		}
 
-		// Check capacity
 		if (slot.registrations.length >= slot.numberOfVolunteers) {
 			return { success: false, error: "This slot is full." };
 		}
 
-		// Check if already registered for this slot
 		const existingRegistration = slot.registrations.find(
-			(r) => r.userId === userId
+			(r) => r.memberId === memberId
 		);
 		if (existingRegistration) {
 			return { success: false, error: "You are already registered for this slot." };
 		}
 
-		// Check for overlapping registrations on the same date
-		const userRegistrations = await tx.query.registrationsTable.findMany({
-			where: eq(registrationsTable.userId, userId),
+		const memberRegistrations = await tx.query.registrationsTable.findMany({
+			where: eq(registrationsTable.memberId, memberId),
 			with: { slot: { with: { role: true } } },
 		});
 
-		const overlapping = userRegistrations.find((reg) => {
+		const overlapping = memberRegistrations.find((reg) => {
 			const existing = reg.slot;
 			if (existing.date !== slot.date) return false;
-			// Overlap: existing.start < new.end AND existing.end > new.start
 			return existing.startTime < slot.endTime && existing.endTime > slot.startTime;
 		});
 
@@ -93,10 +93,11 @@ export async function registerForSlot(slotId: string): Promise<{ success: boolea
 			};
 		}
 
-		// Register
 		await tx.insert(registrationsTable).values({
 			slotId,
-			userId,
+			memberId,
+			name,
+			email,
 		});
 
 		return { success: true };
@@ -111,8 +112,8 @@ export async function registerForSlot(slotId: string): Promise<{ success: boolea
 }
 
 export async function cancelRegistration(registrationId: string): Promise<{ success: boolean; error?: string }> {
-	const session = await getServerSession();
-	if (!session?.user) {
+	const session = await getSession();
+	if (!session) {
 		return { success: false, error: "You must be logged in." };
 	}
 
@@ -124,7 +125,7 @@ export async function cancelRegistration(registrationId: string): Promise<{ succ
 		return { success: false, error: "Registration not found." };
 	}
 
-	if (registration.userId !== session.user.id) {
+	if (registration.memberId !== session.user.memberId) {
 		return { success: false, error: "You can only cancel your own registrations." };
 	}
 
@@ -136,10 +137,10 @@ export async function cancelRegistration(registrationId: string): Promise<{ succ
 }
 
 export async function getMyRegistrations() {
-	const session = await getServerSession();
-	if (!session?.user) {
+	const session = await getSession();
+	if (!session?.user.memberId) {
 		return [];
 	}
 
-	return await getUserRegistrations(session.user.id);
+	return await getMemberRegistrations(session.user.memberId);
 }

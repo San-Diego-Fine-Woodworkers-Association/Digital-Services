@@ -3,17 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavButton } from "@sdfwa/ui/components/nav-button";
-import { useSession } from "@/lib/auth-client";
+import { useSession } from "@sdfwa/auth-client/client";
+import { hasGroup } from "@sdfwa/auth-client";
+
+const ADMIN_GROUP = "digital-services";
 
 type HeaderNavProps = {
-	roles: string[] | undefined;
+	groups: string[];
 };
 
 export function HeaderNav(props: HeaderNavProps) {
-	const { data: session } = useSession();
+	const session = useSession();
 	const pathname = usePathname();
-	const roles = (session as Record<string, unknown>)?.roles as string[] | undefined || props.roles;
-	const isAdmin = roles?.includes("admin");
+	const groups =
+		session.status === "authenticated" ? session.data.user.groups : props.groups;
+	const isAdmin = hasGroup(groups, ADMIN_GROUP);
 
 	const isActive = (href: string, exact = false) =>
 		exact ? pathname === href : pathname.startsWith(href);

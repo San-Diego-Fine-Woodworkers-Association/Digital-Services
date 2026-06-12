@@ -16,7 +16,7 @@ import { confirmContactDetails } from "@/lib/actions/contact";
 
 interface Registration {
 	id: string;
-	userId: string;
+	memberId: string;
 	slotId: string;
 }
 
@@ -50,7 +50,7 @@ interface UserRegistration {
 interface FairRegistrationClientProps {
 	roles: RoleWithSlots[];
 	isLoggedIn: boolean;
-	userId: string | null;
+	memberId: string | null;
 	userRegistrations: UserRegistration[];
 	fairStartDate: string;
 	fairEndDate: string;
@@ -126,7 +126,7 @@ function getConflictReason(
 export function FairRegistrationClient({
 	roles,
 	isLoggedIn,
-	userId,
+	memberId,
 	userRegistrations,
 	fairStartDate,
 	fairEndDate,
@@ -186,10 +186,10 @@ export function FairRegistrationClient({
 		setRegistering(false);
 	}
 
-	async function handleContactConfirm(address: string, phone: string) {
+	async function handleContactConfirm() {
 		if (!pendingSlotId) return;
 		setRegistering(true);
-		const contactResult = await confirmContactDetails(fairId, address, phone);
+		const contactResult = await confirmContactDetails(fairId);
 		if (!contactResult.success) {
 			toast.error(contactResult.error || "Failed to save contact details.");
 			setRegistering(false);
@@ -463,8 +463,8 @@ export function FairRegistrationClient({
 		slot: SlotWithRegistrations,
 		spotsLeft: number
 	) {
-		const userReg = userId
-			? slot.registrations.find((r) => r.userId === userId)
+		const userReg = memberId
+			? slot.registrations.find((r) => r.memberId === memberId)
 			: undefined;
 		const isRegistered = !!userReg;
 		const conflictReason = isRegistered
@@ -779,8 +779,8 @@ export function FairRegistrationClient({
 				onConfirm={handleConfirm}
 				onContactConfirm={handleContactConfirm}
 				onClose={handleDialogClose}
-				initialAddress={initialAddress}
-				initialPhone={initialPhone}
+				address={initialAddress}
+				phone={initialPhone}
 			/>
 		</div>
 	);

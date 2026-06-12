@@ -1,18 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
-import { Settings, Users, ClipboardList, CalendarDays, UserCog } from "lucide-react";
+import { Settings, Users, ClipboardList, CalendarDays } from "lucide-react";
 import { Skeleton } from "@sdfwa/ui/components/skeleton";
 import { getActiveFair, getRolesWithSlots } from "@/lib/actions/fair";
 import { AdminLayoutClient } from "./admin-layout-client";
 
 const adminNavItems = [
-	{
-		label: "Members",
-		description: "Manage members and memberships",
-		href: "/fair-registration/admin/members",
-		icon: UserCog,
-	},
 	{
 		label: "Fair Settings",
 		description: "Configure fair name and dates",

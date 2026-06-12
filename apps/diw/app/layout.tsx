@@ -9,7 +9,7 @@ import { AppLayout } from "@sdfwa/ui/components/layouts/app-layout";
 import { Logo } from "@sdfwa/ui/components/logo";
 
 import { HeaderActions } from "@/components/header-actions";
-import { getServerSession } from "@/lib/auth/get-session";
+import { getSession, getUser, isAdmin as sessionIsAdmin } from "@/lib/auth/session";
 import { HeaderNav } from "@/components/header-nav";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
@@ -24,16 +24,22 @@ const fontMono = Geist_Mono({
 });
 
 async function AppShell({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession();
-  const user = session?.user;
-  const roles = (session as Record<string, unknown>)?.roles as string[] | undefined;
-  const isAdmin = roles?.includes("admin");
+  const session = await getSession();
+  const currentUser = session ? await getUser() : null;
+  const isAdmin = sessionIsAdmin(session);
+  const groups = session?.user.groups ?? [];
+  const headerUser = session
+    ? {
+        name: currentUser?.name ?? session.user.email,
+        email: session.user.email,
+      }
+    : undefined;
 
   return (
     <AppLayout
       logo={<Logo><Image src="/images/full-logo.png" alt="SDFWA Logo" width={1090} height={746} /></Logo>}
-      navigation={<HeaderNav roles={roles} />}
-      actions={<HeaderActions user={user} />}
+      navigation={<HeaderNav groups={groups} />}
+      actions={<HeaderActions user={headerUser} />}
       mobileNav={<MobileBottomNav isAdmin={isAdmin} />}
     >
       {children}
