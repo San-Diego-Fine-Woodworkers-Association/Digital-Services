@@ -27,9 +27,10 @@ RUN bun install --frozen-lockfile
 COPY --from=prepare /app/out/full/ .
 RUN bun turbo build
 # Compile the shared start script (runs migrations then starts the server) to plain JS.
-# scripts/ lives outside any workspace, so it's not in the pruned output — copy it directly.
-COPY scripts/start.ts /app/scripts/start.ts
-RUN bun build /app/scripts/start.ts --outdir /app/start-dist --target node
+# scripts/ lives outside any workspace, so it's not in the pruned output. Copy it into
+# the app workspace so bun resolves its imports against the app's node_modules.
+COPY scripts/start.ts /app/apps/$APP_NAME/_start.ts
+RUN bun build /app/apps/$APP_NAME/_start.ts --outdir /app/start-dist --target node
 
 # ---
 FROM base AS runner
@@ -48,7 +49,7 @@ COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/.next/standalone ./
 COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/.next/static ./${APP_PATH}/.next/static
 COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/public ./${APP_PATH}/public
 # Copy the compiled start script and migration files
-COPY --from=builder --chown=app:nodejs /app/start-dist/start.js ./start.js
+COPY --from=builder --chown=app:nodejs /app/start-dist/_start.js ./start.js
 COPY --from=builder --chown=app:nodejs /app/apps/$APP_NAME/drizzle ./drizzle
 
 EXPOSE $PORT

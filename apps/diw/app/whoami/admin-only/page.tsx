@@ -19,7 +19,7 @@ export default async function AdminOnlyPage() {
           You are in <code>{REQUIRED_GROUP}</code>.
         </p>
         <pre className="bg-muted overflow-x-auto rounded p-3 text-xs">
-          {JSON.stringify(session.user.groups, null, 2)}
+          groups: {JSON.stringify(session.user.groups, null, 2)}
         </pre>
       </main>
     );
