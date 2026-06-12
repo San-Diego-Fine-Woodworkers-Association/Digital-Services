@@ -109,8 +109,19 @@ export type FetchGroupsResult =
   | { status: "skipped" }
   | { status: "error"; reason: string };
 
+/**
+ * Keep only `@sdfwa.org` group emails and strip the suffix, returning bare
+ * group names. The domain is implied by the auth system — storing it would
+ * just bloat every session, JWT, and `requireGroup` call site.
+ */
 export function filterSdfwaGroups(emails: string[]): string[] {
-  return emails.filter((e) => e.toLowerCase().endsWith(GROUP_DOMAIN_SUFFIX));
+  const out: string[] = [];
+  for (const raw of emails) {
+    const lower = raw.toLowerCase();
+    if (!lower.endsWith(GROUP_DOMAIN_SUFFIX)) continue;
+    out.push(lower.slice(0, -GROUP_DOMAIN_SUFFIX.length));
+  }
+  return out;
 }
 
 /**

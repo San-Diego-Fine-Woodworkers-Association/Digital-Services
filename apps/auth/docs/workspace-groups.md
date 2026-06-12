@@ -2,7 +2,8 @@
 
 Lets a Google Workspace admin grant a volunteer access to a feature or app by
 adding them to a Google Group (e.g. `tech-admin@sdfwa.org`). The auth app reads
-each volunteer's groups from the Admin SDK and stamps them onto the session
+each volunteer's groups from the Admin SDK, strips the `@sdfwa.org` suffix,
+and stamps the bare names (`tech-admin`, `shop-managers`, …) onto the session
 and the JWT, so consumer apps can gate features without their own role tables.
 
 ## How it works
@@ -43,12 +44,18 @@ Sync runs in two places:
 Members get `groups: []`. Group-gated routes will reject members just like they
 reject anonymous users.
 
-### Allowlist
+### Allowlist and normalization
 
 There is no curated allowlist. We accept every group whose email ends in
 `@sdfwa.org` (case-insensitive). The OAuth consent screen is **Internal**, so
 only Workspace users sign in; the suffix filter is defense-in-depth against
 external groups Workspace might surface.
+
+Groups are stored as **bare names**, lowercase, with the `@sdfwa.org` suffix
+stripped — `tech-admin@sdfwa.org` becomes `"tech-admin"` in the database, the
+session payload, the JWT claim, and every `requireGroup` / `hasGroup` call.
+The domain is implied. If you ever need to reach a group from non-Workspace
+code (e.g. to email it), reattach `@sdfwa.org`.
 
 ## Workspace admin setup
 
@@ -89,7 +96,7 @@ One-time. Requires a Workspace super-admin.
 | Var | Value |
 | --- | --- |
 | `GOOGLE_SERVICE_ACCOUNT_JSON_B64` (secret) | `base64 -w0 < service-account.json` |
-| `GOOGLE_ADMIN_IMPERSONATION_SUBJECT` | e.g. `tech-admin@sdfwa.org` |
+| `GOOGLE_ADMIN_IMPERSONATION_SUBJECT` | e.g. `tech-admin` |
 
 Both must be set for group sync to run. If either is missing, the admin client
 logs `google_admin_config_missing` once and returns `{ status: "skipped" }`,
@@ -118,9 +125,9 @@ Revocation lag for a user removed from a group:
 ```ts
 import { requireGroup } from "@sdfwa/auth-client/server";
 
-await requireGroup(cookieHeader, "tech-admin@sdfwa.org");
+await requireGroup(cookieHeader, "tech-admin");
 // or any-of:
-await requireGroup(cookieHeader, ["tech-admin@sdfwa.org", "shop-managers@sdfwa.org"]);
+await requireGroup(cookieHeader, ["tech-admin", "shop-managers"]);
 ```
 
 Pure predicates for middleware / client checks:
@@ -128,7 +135,7 @@ Pure predicates for middleware / client checks:
 ```ts
 import { hasGroup, hasAnyGroup, hasAllGroups } from "@sdfwa/auth-client";
 
-if (!hasGroup(session.user.groups, "tech-admin@sdfwa.org")) return null;
+if (!hasGroup(session.user.groups, "tech-admin")) return null;
 ```
 
 Reference page: `apps/diw/app/whoami/admin-only/page.tsx`.

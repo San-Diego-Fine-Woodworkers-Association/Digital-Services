@@ -39,21 +39,18 @@ afterEach(() => {
 });
 
 describe("filterSdfwaGroups", () => {
-  test("keeps only @sdfwa.org-suffixed emails", () => {
+  test("keeps @sdfwa.org-suffixed emails and strips the suffix", () => {
     const input = [
       "tech-admin@sdfwa.org",
       "external@example.com",
       "shop-managers@sdfwa.org",
       "all@google.com",
     ];
-    expect(filterSdfwaGroups(input)).toEqual([
-      "tech-admin@sdfwa.org",
-      "shop-managers@sdfwa.org",
-    ]);
+    expect(filterSdfwaGroups(input)).toEqual(["tech-admin", "shop-managers"]);
   });
 
-  test("case-insensitive on the suffix", () => {
-    expect(filterSdfwaGroups(["Foo@SDFWA.ORG"])).toEqual(["Foo@SDFWA.ORG"]);
+  test("case-insensitive on the suffix; normalizes to lowercase", () => {
+    expect(filterSdfwaGroups(["Foo@SDFWA.ORG"])).toEqual(["foo"]);
   });
 });
 
@@ -94,8 +91,8 @@ describe("fetchUserGroups", () => {
 
     const a = await fetchUserGroups("u@sdfwa.org");
     const b = await fetchUserGroups("u@sdfwa.org");
-    expect(a).toEqual({ status: "ok", groups: ["tech-admin@sdfwa.org"] });
-    expect(b).toEqual({ status: "ok", groups: ["tech-admin@sdfwa.org"] });
+    expect(a).toEqual({ status: "ok", groups: ["tech-admin"] });
+    expect(b).toEqual({ status: "ok", groups: ["tech-admin"] });
     expect(tokenCalls).toBe(1);
     expect(groupsCalls).toBe(2);
   });
@@ -151,7 +148,7 @@ describe("fetchUserGroups", () => {
     const result = await fetchUserGroups("u@sdfwa.org");
     expect(result).toEqual({
       status: "ok",
-      groups: ["one@sdfwa.org", "two@sdfwa.org"],
+      groups: ["one", "two"],
     });
   });
 });

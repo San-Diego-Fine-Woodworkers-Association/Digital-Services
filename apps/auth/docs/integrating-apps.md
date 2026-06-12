@@ -68,15 +68,16 @@ await requireVolunteer(cookieHeader);
 
 ## Gating on Workspace groups
 
-Volunteers carry a `groups: string[]` array of `@sdfwa.org` Google Group emails.
+Volunteers carry a `groups: string[]` array of bare `@sdfwa.org` Google Group
+names (the `@sdfwa.org` suffix is stripped — see `docs/workspace-groups.md`).
 Use `requireGroup` for server-side route protection:
 
 ```ts
 import { requireGroup } from "@sdfwa/auth-client/server";
 
-await requireGroup(cookieHeader, "tech-admin@sdfwa.org");
+await requireGroup(cookieHeader, "tech-admin");
 // or any-of:
-await requireGroup(cookieHeader, ["tech-admin@sdfwa.org", "shop-managers@sdfwa.org"]);
+await requireGroup(cookieHeader, ["tech-admin", "shop-managers"]);
 ```
 
 For middleware or client-side checks (no fetch), use the pure predicates from
@@ -85,7 +86,7 @@ the main entry point:
 ```ts
 import { hasGroup, hasAnyGroup, hasAllGroups } from "@sdfwa/auth-client";
 
-if (!hasGroup(session.user.groups, "tech-admin@sdfwa.org")) return null;
+if (!hasGroup(session.user.groups, "tech-admin")) return null;
 ```
 
 All predicates are default-closed: empty `userGroups` or empty `allowed`/`required`
