@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth/get-session";
+import { requireAdmin } from "@/lib/auth/session";
 import { getActiveFair } from "@/lib/actions/fair";
 import { getAllRegistrations } from "@/lib/queries/admin";
 

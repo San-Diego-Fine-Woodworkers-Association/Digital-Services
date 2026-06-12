@@ -21,17 +21,28 @@ Then `bun install` at the repo root.
 
 ## Configure env
 
-Both vars are required when the consumer is on a different origin than
-the auth app (i.e. always, except for local same-host tests).
+You need two pairs of base-URL env vars: one for the auth app (so the consumer
+knows where to send the user / fetch sessions), and one for the consumer
+app's own origin (so it can build absolute `redirect=` URLs back to itself
+after sign-in). Each pair has a server-side variant and a `NEXT_PUBLIC_`
+variant so the same value is available during SSR and in the browser bundle.
 
 ```ini
 # apps/<your-app>/.env
-AUTH_BASE_URL=http://localhost:3002              # server-side
-NEXT_PUBLIC_AUTH_BASE_URL=http://localhost:3002  # client-side hooks
+AUTH_BASE_URL=http://localhost:3002              # server-side calls to auth app
+NEXT_PUBLIC_AUTH_BASE_URL=http://localhost:3002  # client hooks + sign-in/out links
+
+APP_BASE_URL=http://localhost:3000               # this app's own origin (server)
+NEXT_PUBLIC_BASE_URL=http://localhost:3000       # same, for client-side links
 ```
 
-In production these become `https://auth.sdfwa.org`. Add them to the app's
-`turbo.json` `build.env` so cache keys invalidate on change.
+In production these become `https://auth.sdfwa.org` and (e.g.)
+`https://diw.sdfwa.org`. Add all four to the app's `turbo.json` `build.env`
+so cache keys invalidate on change.
+
+If the consumer also calls the service-to-service endpoints
+(`/api/user/[memberId]`, `/api/users/search`), add `AUTH_SERVICE_TOKEN` as
+well — see [Server-to-server lookups](#server-to-server-lookups-no-user-context).
 
 ## Server-side: read the session
 
@@ -89,10 +100,12 @@ import { hasGroup, hasAnyGroup, hasAllGroups } from "@sdfwa/auth-client";
 if (!hasGroup(session.user.groups, "digital-services")) return null;
 ```
 
-All predicates are default-closed: empty `userGroups` or empty `allowed`/`required`
-returns false. Comparisons are case-sensitive — compare against lowercase
-constants. Reference page: `apps/diw/app/whoami/admin-only/page.tsx`. For the
-Workspace admin setup, see `docs/workspace-groups.md` in the auth app.
+All predicates are default-closed: empty `userGroups` or empty
+`allowed`/`required` returns false. Comparisons are case-sensitive — compare
+against lowercase constants. The canonical admin group for digital services
+work (used by diw's admin pages and the auth app's own `/whoami/admin-only`)
+is `"digital-services"`. For the Workspace admin setup, see
+`docs/workspace-groups.md` in the auth app.
 
 ## Client-side: hooks
 
@@ -131,11 +144,30 @@ cookie-forwarding helpers above are fine for SSR.
 ## Sign-in entry point
 
 Send unauthenticated users to `https://auth.sdfwa.org/login?redirect=<encoded>`.
-The auth app validates the `redirect` param (must be relative or under
-`*.sdfwa.org` or `localhost`) and bounces them back after sign-in.
+The auth app validates the `redirect` param: it must be a URL whose host is
+`sdfwa.org`, ends in `.sdfwa.org`, or is `localhost`.
 
-If you omit the param, users land on `POST_LOGIN_DEFAULT_REDIRECT` (in prod,
-`https://www.sdfwa.org`).
+**Use an absolute URL.** A relative path like `/fair-registration` *will*
+pass validation, but the auth app resolves it against its own origin, so the
+user lands on `auth.sdfwa.org/fair-registration` after sign-in instead of
+your app. Build the redirect using your own `APP_BASE_URL` /
+`NEXT_PUBLIC_BASE_URL`:
+
+```ts
+// server
+const redirectTo = `${process.env.APP_BASE_URL}/fair-registration`;
+redirect(
+  `${process.env.AUTH_BASE_URL}/login?redirect=${encodeURIComponent(redirectTo)}`,
+);
+
+// client
+const redirectTo = `${window.location.origin}${window.location.pathname}`;
+// or, during SSR before window exists:
+//   `${process.env.NEXT_PUBLIC_BASE_URL}/fair-registration`
+```
+
+If you omit `redirect` entirely, users land on `POST_LOGIN_DEFAULT_REDIRECT`
+(in prod, `https://www.sdfwa.org`).
 
 ## Sign-out
 
@@ -152,24 +184,68 @@ await fetch(`${process.env.NEXT_PUBLIC_AUTH_BASE_URL}/api/auth/sign-out`, {
 });
 ```
 
-## Server-to-server lookups (no user context)
-
-For background jobs that need to read member data, hit
-`/api/user/[memberId]` with a service token:
+**Follow it with a hard navigation, not `router.push`/`router.refresh`.**
+The `useSession` / `useUser` hooks only fetch on mount, so a client-side
+navigation will keep the stale `authenticated` state until something forces
+a remount — the UI will look signed-in even though the cookie is gone:
 
 ```ts
-const res = await fetch(`${AUTH_BASE_URL}/api/user/${memberId}`, {
-  headers: { Authorization: `Bearer ${process.env.AUTH_SERVICE_TOKEN}` },
-});
+await fetch(/* sign-out as above */);
+window.location.assign("/"); // or wherever your signed-out landing is
 ```
 
-Provision the token by adding `SERVICE_TOKEN` in the auth app's prod env, and
-distributing the same value to every backend caller. Browsers should **not**
-have this token — there's no CORS on this endpoint.
+A `router.refresh()` re-runs server components so the SSR-rendered shell
+flips to signed-out, but any client component reading `useSession()` retains
+the stale data. The hard nav is the standard sign-out UX anyway.
+
+## Server-to-server lookups (no user context)
+
+Two service-token-protected endpoints are available for admin tools and
+background jobs that need member data without a browser session.
+
+**Point lookup** — when you already have a memberId (e.g. the result of an
+admin picking a member, or a job hydrating ProClass-derived data):
+
+```ts
+const res = await fetch(`${process.env.AUTH_BASE_URL}/api/user/${memberId}`, {
+  headers: { Authorization: `Bearer ${process.env.AUTH_SERVICE_TOKEN}` },
+  cache: "no-store",
+});
+// 200 → full proclass_users row, 404 → not found
+```
+
+**Search** — for "find a member" pickers. Matches active `proclass_users` by
+first name, last name, full name, member ID prefix, or email substring
+(case-insensitive); returns up to 20 results:
+
+```ts
+const res = await fetch(
+  `${process.env.AUTH_BASE_URL}/api/users/search?q=${encodeURIComponent(query)}`,
+  {
+    headers: { Authorization: `Bearer ${process.env.AUTH_SERVICE_TOKEN}` },
+    cache: "no-store",
+  },
+);
+const { results } = await res.json();
+// results: { memberId, name, email, membership }[]
+```
+
+Provision the token by setting `SERVICE_TOKEN` in the auth app's prod env,
+then distribute the same value to every backend caller as
+`AUTH_SERVICE_TOKEN`. Browsers should **not** have this token — neither
+endpoint sets CORS headers, and the token bypasses session checks entirely.
+Always call these from `"use server"` actions or route handlers, never from
+client code.
 
 ## Reference implementation
 
-`apps/diw/app/whoami/page.tsx` is the smallest realistic example: it renders
-the session and current user using `getServerSession` and `getCurrentUser`.
-Visit it locally at `http://localhost:3000/whoami` after signing in at
-`http://localhost:3002/login`.
+The smallest, most realistic example is diw's auth wrapper at
+`apps/diw/lib/auth/session.ts` — a thin helper that bundles the
+cookie-forwarding boilerplate plus a `loginUrl()` builder for absolute
+redirects. The pages that consume it (`apps/diw/app/fair-registration/*` for
+member flows; `apps/diw/app/fair-registration/admin/*` for group-gated
+admin) show the full pattern end-to-end, including the admin
+"Register a Member" search powered by `/api/users/search`.
+
+For just inspecting the session shape, the auth app's own
+`apps/auth/app/whoami/page.tsx` is the simplest demo.

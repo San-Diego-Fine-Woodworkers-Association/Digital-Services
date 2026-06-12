@@ -1,6 +1,6 @@
 import { cacheTag, cacheLife } from "next/cache";
 import { eq } from "drizzle-orm";
-import { db, rolesTable, userSettingsTable } from "../db";
+import { db, rolesTable } from "../db";
 
 export async function getRoleById(roleId: string) {
   "use cache";
@@ -25,11 +25,7 @@ export async function getAllRegistrations(fairId: string) {
       with: {
         slots: {
           with: {
-            registrations: {
-              with: {
-                user: true,
-              },
-            },
+            registrations: true,
           },
         },
       },
@@ -65,10 +61,10 @@ export async function getAllRegistrations(fairId: string) {
           roleName: role.name,
           startTime: slot.startTime,
           endTime: slot.endTime,
-          volunteerName: reg.user.name,
-          volunteerEmail: reg.user.email,
-          memberId: reg.user.id,
-          contactValidated: reg.user.memberId ? validatedMemberIds.has(reg.user.memberId) : false,
+          volunteerName: reg.name,
+          volunteerEmail: reg.email,
+          memberId: reg.memberId,
+          contactValidated: validatedMemberIds.has(reg.memberId),
         });
       }
     }

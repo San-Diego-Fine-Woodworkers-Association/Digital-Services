@@ -116,7 +116,9 @@ export function RegisterButton({
 		button = !isLoggedIn ? (
 			<Button size="sm" asChild>
 				<Link
-					href={`/fair-registration/login?redirect=${encodeURIComponent("/fair-registration?slot=" + slotId)}`}
+					href={`${process.env.NEXT_PUBLIC_AUTH_BASE_URL}/login?redirect=${encodeURIComponent(
+						`${process.env.NEXT_PUBLIC_BASE_URL}/fair-registration?slot=${slotId}`,
+					)}`}
 				>
 					Register
 				</Link>

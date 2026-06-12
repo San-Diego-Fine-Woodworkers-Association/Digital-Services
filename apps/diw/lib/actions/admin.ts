@@ -1,10 +1,9 @@
 "use server";
 
-import { eq, and, or, ilike, notInArray, inArray } from "drizzle-orm";
+import { eq, and, notInArray, inArray } from "drizzle-orm";
 import { updateTag } from "next/cache";
 import { db, fairDetailsTable, rolesTable, slotsTable, registrationsTable } from "../db";
-import { user as userTable } from "../db/auth-schema";
-import { requireAdmin } from "../auth/get-session";
+import { requireAdmin } from "../auth/session";
 
 // Fair actions
 
@@ -168,36 +167,73 @@ export async function adminDeleteRegistration(registrationId: string) {
 	updateTag("registrations");
 }
 
-export async function searchMembers(query: string): Promise<{ id: string; name: string; memberId: string | null; email: string }[]> {
+type MemberLookup = {
+	memberId: string;
+	name: string;
+	email: string;
+};
+
+function authServiceHeaders() {
+	const token = process.env.AUTH_SERVICE_TOKEN;
+	if (!token) {
+		throw new Error("AUTH_SERVICE_TOKEN is not configured.");
+	}
+	return { Authorization: `Bearer ${token}` };
+}
+
+function authBaseUrl() {
+	return process.env.AUTH_BASE_URL ?? "https://auth.sdfwa.org";
+}
+
+async function lookupMember(memberId: string): Promise<MemberLookup | null> {
+	const res = await fetch(
+		`${authBaseUrl()}/api/user/${encodeURIComponent(memberId)}`,
+		{ headers: authServiceHeaders(), cache: "no-store" },
+	);
+	if (!res.ok) return null;
+	const data = (await res.json()) as {
+		memberId: string;
+		email: string;
+		firstName: string | null;
+		lastName: string | null;
+	};
+	const name = [data.firstName, data.lastName].filter(Boolean).join(" ").trim();
+	return { memberId: data.memberId, name, email: data.email };
+}
+
+export async function searchMembers(
+	query: string,
+): Promise<{ memberId: string; name: string; email: string; membership: string | null }[]> {
 	await requireAdmin();
-
 	const trimmed = query.trim();
-	if (!trimmed) return [];
+	if (trimmed.length < 2) return [];
 
-	const results = await db
-		.select({
-			id: userTable.id,
-			name: userTable.name,
-			memberId: userTable.memberId,
-			email: userTable.email,
-		})
-		.from(userTable)
-		.where(
-			or(
-				ilike(userTable.name, `%${trimmed}%`),
-				ilike(userTable.memberId, `${trimmed}%`)
-			)
-		)
-		.limit(20);
-
-	return results;
+	const res = await fetch(
+		`${authBaseUrl()}/api/users/search?q=${encodeURIComponent(trimmed)}`,
+		{ headers: authServiceHeaders(), cache: "no-store" },
+	);
+	if (!res.ok) return [];
+	const data = (await res.json()) as {
+		results: { memberId: string; name: string; email: string; membership: string | null }[];
+	};
+	return data.results;
 }
 
 export async function adminCreateRegistration(
 	slotId: string,
-	userId: string
-): Promise<{ success: boolean; error?: string }> {
+	memberId: string
+): Promise<{ success: boolean; error?: string; registeredName?: string }> {
 	await requireAdmin();
+
+	const trimmed = memberId.trim();
+	if (!trimmed) {
+		return { success: false, error: "Member ID is required." };
+	}
+
+	const member = await lookupMember(trimmed);
+	if (!member) {
+		return { success: false, error: "No member found with that ID." };
+	}
 
 	return await db.transaction(async (tx) => {
 		const slot = await tx.query.slotsTable.findFirst({
@@ -213,18 +249,17 @@ export async function adminCreateRegistration(
 			return { success: false, error: "This slot is full." };
 		}
 
-		const existing = slot.registrations.find((r) => r.userId === userId);
+		const existing = slot.registrations.find((r) => r.memberId === member.memberId);
 		if (existing) {
 			return { success: false, error: "This member is already registered for this slot." };
 		}
 
-		// Check for overlapping registrations
-		const userRegistrations = await tx.query.registrationsTable.findMany({
-			where: eq(registrationsTable.userId, userId),
+		const memberRegistrations = await tx.query.registrationsTable.findMany({
+			where: eq(registrationsTable.memberId, member.memberId),
 			with: { slot: { with: { role: true } } },
 		});
 
-		const overlapping = userRegistrations.find((reg) => {
+		const overlapping = memberRegistrations.find((reg) => {
 			const s = reg.slot;
 			if (s.date !== slot.date) return false;
 			return s.startTime < slot.endTime && s.endTime > slot.startTime;
@@ -238,10 +273,15 @@ export async function adminCreateRegistration(
 			};
 		}
 
-		await tx.insert(registrationsTable).values({ slotId, userId });
+		await tx.insert(registrationsTable).values({
+			slotId,
+			memberId: member.memberId,
+			name: member.name,
+			email: member.email,
+		});
 
 		updateTag("roles");
 		updateTag("registrations");
-		return { success: true };
+		return { success: true, registeredName: member.name };
 	});
 }

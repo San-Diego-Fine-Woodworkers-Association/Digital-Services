@@ -125,9 +125,12 @@ session cookie is sent to every consumer app on the same root domain.
 
 ## Cross-origin reads
 
-`middleware.ts` adds CORS headers to `/api/session` and `/api/user` for any
-origin matching `*.sdfwa.org` (and `localhost` in dev). Off-domain origins
-receive no `Access-Control-Allow-Origin` and are blocked by the browser.
+`middleware.ts` adds CORS headers to `/api/session`, `/api/user`, and
+`/api/auth/*` for any origin matching `*.sdfwa.org` (and `localhost` in dev).
+The `/api/auth/*` paths need cross-origin headers so consumer apps can call
+`sign-out` (and Better-Auth's own session helpers) from the browser. Off-domain
+origins receive no `Access-Control-Allow-Origin` and are blocked by the
+browser.
 
 ## Database tables owned by this app
 

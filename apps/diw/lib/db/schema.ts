@@ -1,20 +1,6 @@
 import { relations } from "drizzle-orm";
 import { boolean, date, integer, json, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-import { user } from "./auth-schema";
-
-// START TEMP USER TABLES
-export const adminUsersTable = pgTable("admin_users", {
-	memberId: text().primaryKey()
-});
-
-export const membershipTable = pgTable("membership", {
-	memberId: text().primaryKey().notNull().unique(),
-	email: text().notNull(),
-	membership: text().notNull()
-});
-// END TEMP USER TABLES
-
 export const fairDetailsTable = pgTable("fair_details", {
   id: uuid().primaryKey().defaultRandom().unique(),
 	name: text().notNull(),
@@ -42,11 +28,13 @@ export const slotsTable = pgTable("slots", {
 export const registrationsTable = pgTable("registrations", {
 	id: uuid().primaryKey().defaultRandom().unique(),
 	slotId: uuid().notNull().references(() => slotsTable.id),
-	userId: text().notNull().references(() => user.id)
+	memberId: text().notNull(),
+	name: text().notNull(),
+	email: text().notNull(),
 });
 
 export const userSettingsTable = pgTable("user_settings", {
-	memberId: text().primaryKey().references(() => user.memberId, { onDelete: "cascade" }),
+	memberId: text().primaryKey(),
 	fairId: uuid().references(() => fairDetailsTable.id, { onDelete: "set null" }),
 	contactValidated: boolean().notNull().default(false),
 });
@@ -76,14 +64,6 @@ export const registrationRelations = relations(registrationsTable, ({ one }) => 
 		fields: [registrationsTable.slotId],
 		references: [slotsTable.id]
 	}),
-	user: one(user, {
-		fields: [registrationsTable.userId],
-		references: [user.id]
-	})
-}));
-
-export const userSlotRelations = relations(user, ({ many }) => ({
-	registrations: many(registrationsTable)
 }));
 
 export const userSettingsRelations = relations(userSettingsTable, ({ one }) => ({

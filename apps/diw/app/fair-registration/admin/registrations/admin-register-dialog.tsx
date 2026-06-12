@@ -31,10 +31,10 @@ interface RoleWithSlots {
 }
 
 interface MemberResult {
-	id: string;
+	memberId: string;
 	name: string;
-	memberId: string | null;
 	email: string;
+	membership: string | null;
 }
 
 function formatTime(d: Date | string) {
@@ -110,18 +110,14 @@ export function AdminRegisterDialog({
 }) {
 	const router = useRouter();
 
-	// Member search
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<MemberResult[]>([]);
 	const [searching, setSearching] = useState(false);
 	const [selectedMember, setSelectedMember] = useState<MemberResult | null>(null);
 	const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-	// Filters
 	const [activeDate, setActiveDate] = useState<string | null>(null);
 	const [activeRoleId, setActiveRoleId] = useState<string | null>(null);
-
-	// Selection & submission
 	const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
 	const [submitting, setSubmitting] = useState(false);
 
@@ -138,7 +134,6 @@ export function AdminRegisterDialog({
 		if (!open) resetAll();
 	}, [open]);
 
-	// Debounced member search
 	useEffect(() => {
 		if (debounceRef.current) clearTimeout(debounceRef.current);
 		if (query.trim().length < 2) { setResults([]); return; }
@@ -153,7 +148,6 @@ export function AdminRegisterDialog({
 		return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
 	}, [query]);
 
-	// Derived filter options (only show dates/roles that have open slots)
 	const availableRoles = useMemo(
 		() =>
 			roles
@@ -168,22 +162,17 @@ export function AdminRegisterDialog({
 	const allDates = useMemo(() => {
 		const dateSet = new Set<string>();
 		for (const role of availableRoles) {
-			for (const slot of role.slots) {
-				dateSet.add(slot.date);
-			}
+			for (const slot of role.slots) dateSet.add(slot.date);
 		}
 		return Array.from(dateSet).sort();
 	}, [availableRoles]);
 
-	// Cross-filtering: which dates have slots given active role filter, and vice versa
 	const datesWithSlotsForRole = useMemo(() => {
 		const base = activeRoleId
 			? availableRoles.filter((r) => r.id === activeRoleId)
 			: availableRoles;
 		const set = new Set<string>();
-		for (const role of base) {
-			for (const slot of role.slots) set.add(slot.date);
-		}
+		for (const role of base) for (const slot of role.slots) set.add(slot.date);
 		return set;
 	}, [availableRoles, activeRoleId]);
 
@@ -218,7 +207,6 @@ export function AdminRegisterDialog({
 		[availableRoles, rolesWithSlotsForDate]
 	);
 
-	// Feed: filtered date groups → role subgroups → slots
 	const feed = useMemo(() => {
 		const filteredRoles = activeRoleId
 			? availableRoles.filter((r) => r.id === activeRoleId)
@@ -244,10 +232,10 @@ export function AdminRegisterDialog({
 	async function handleSubmit() {
 		if (!selectedMember || !selectedSlotId) return;
 		setSubmitting(true);
-		const result = await adminCreateRegistration(selectedSlotId, selectedMember.id);
+		const result = await adminCreateRegistration(selectedSlotId, selectedMember.memberId);
 		setSubmitting(false);
 		if (result.success) {
-			toast.success(`Registered ${selectedMember.name} successfully.`);
+			toast.success(`Registered ${selectedMember.name || selectedMember.memberId} successfully.`);
 			onOpenChange(false);
 			router.refresh();
 		} else {
@@ -267,7 +255,6 @@ export function AdminRegisterDialog({
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-[min(32rem,90vw)] flex flex-col overflow-visible gap-0 p-0">
-				{/* Header */}
 				<div className="p-6 pb-4">
 					<DialogHeader>
 						<DialogTitle>Register a Member</DialogTitle>
@@ -276,14 +263,13 @@ export function AdminRegisterDialog({
 						</DialogDescription>
 					</DialogHeader>
 
-					{/* Member search */}
 					<div className="mt-4">
 						{selectedMember ? (
 							<div className="flex items-center justify-between rounded-md border px-3 py-2">
 								<div>
-									<p className="font-medium text-sm">{selectedMember.name}</p>
+									<p className="font-medium text-sm">{selectedMember.name || `Member ${selectedMember.memberId}`}</p>
 									<p className="text-xs text-muted-foreground">
-										{selectedMember.memberId && `#${selectedMember.memberId} · `}{selectedMember.email}
+										#{selectedMember.memberId} · {selectedMember.email}
 									</p>
 								</div>
 								<Button
@@ -297,7 +283,7 @@ export function AdminRegisterDialog({
 						) : (
 							<div className="relative">
 								<Input
-									placeholder="Search by name or member ID..."
+									placeholder="Search by name, member ID, or email..."
 									value={query}
 									onChange={(e) => setQuery(e.target.value)}
 									autoFocus
@@ -311,7 +297,7 @@ export function AdminRegisterDialog({
 										) : (
 											results.map((m) => (
 												<button
-													key={m.id}
+													key={m.memberId}
 													type="button"
 													className="w-full text-left px-3 py-2.5 hover:bg-muted text-sm cursor-pointer border-b last:border-0"
 													onClick={() => {
@@ -320,9 +306,9 @@ export function AdminRegisterDialog({
 														setResults([]);
 													}}
 												>
-													<p className="font-medium">{m.name}</p>
+													<p className="font-medium">{m.name || `Member ${m.memberId}`}</p>
 													<p className="text-xs text-muted-foreground">
-														{m.memberId && `#${m.memberId} · `}{m.email}
+														#{m.memberId} · {m.email}
 													</p>
 												</button>
 											))
@@ -334,10 +320,8 @@ export function AdminRegisterDialog({
 					</div>
 				</div>
 
-				{/* Filters + slot feed — only shown once a member is selected */}
 				{selectedMember && (
 					<>
-						{/* Filters */}
 						<div className="border-t border-b bg-muted/40 px-4 py-2.5 flex gap-2">
 							<FilterDropdown
 								placeholder="All dates"
@@ -355,7 +339,6 @@ export function AdminRegisterDialog({
 							)}
 						</div>
 
-						{/* Slot feed */}
 						<div className="overflow-y-auto max-h-[40vh] px-4">
 							{feed.length === 0 ? (
 								<p className="py-8 text-center text-sm text-muted-foreground">
@@ -408,7 +391,6 @@ export function AdminRegisterDialog({
 					</>
 				)}
 
-				{/* Footer */}
 				<div className="flex flex-col gap-2 px-6 py-4 border-t sm:flex-row sm:items-center sm:justify-between sm:gap-3">
 					{selectedSlotInfo && (
 						<p className="text-sm text-muted-foreground truncate">

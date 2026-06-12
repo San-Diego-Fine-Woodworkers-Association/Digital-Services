@@ -25,5 +25,7 @@ export interface FairDetails {
 export interface Registration {
 	id: string;
 	slotId: string;
-	userId: string;
+	memberId: string;
+	name: string;
+	email: string;
 }

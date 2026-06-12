@@ -9,7 +9,7 @@ A TypeScript monorepo for SDFWA digital services, built with Next.js, React, and
 | Monorepo | [Turborepo](https://turbo.build) |
 | Frontend | Next.js 16, React 19, Tailwind CSS 4 |
 | Database | PostgreSQL, [Drizzle ORM](https://orm.drizzle.team) |
-| Auth | [better-auth](https://www.better-auth.com) |
+| Auth | Shared SSO via `apps/auth` (Better-Auth backend), consumed through `@sdfwa/auth-client` |
 | Tooling | ESLint, Prettier |
 
 ## Repository Structure
