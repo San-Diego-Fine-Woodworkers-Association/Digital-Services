@@ -21,6 +21,7 @@ import {
 } from "@sdfwa/ui/components/alert-dialog";
 import { toast } from "@sdfwa/ui/components/sonner";
 import { cancelRegistration } from "@/lib/actions/registration";
+import { useAppConfig } from "@/lib/app-config";
 
 interface RegisterButtonProps {
 	slotId: string;
@@ -64,6 +65,7 @@ export function RegisterButton({
 	onRegisterClick,
 }: RegisterButtonProps) {
 	const router = useRouter();
+	const { authBaseUrl, appBaseUrl } = useAppConfig();
 	const [cancelling, setCancelling] = useState(false);
 	const [cancelOpen, setCancelOpen] = useState(false);
 
@@ -116,8 +118,8 @@ export function RegisterButton({
 		button = !isLoggedIn ? (
 			<Button size="sm" asChild>
 				<Link
-					href={`${process.env.NEXT_PUBLIC_AUTH_BASE_URL}/login?redirect=${encodeURIComponent(
-						`${process.env.NEXT_PUBLIC_BASE_URL}/fair-registration?slot=${slotId}`,
+					href={`${authBaseUrl}/login?redirect=${encodeURIComponent(
+						`${appBaseUrl}/fair-registration?slot=${slotId}`,
 					)}`}
 				>
 					Register
