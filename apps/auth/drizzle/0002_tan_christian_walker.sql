@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "groups_json" text DEFAULT '[]' NOT NULL;
