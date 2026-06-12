@@ -1,15 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import type { CurrentUser, Session } from "./types";
 
-function authBaseUrl(): string {
-  if (typeof process === "undefined") return "https://auth.sdfwa.org";
+const AuthBaseUrlContext = createContext<string | null>(null);
+
+/**
+ * Provide the auth app's base URL to descendant hooks. Render this in your
+ * root layout, sourcing the URL from a server-side env var so the same image
+ * can run in dev / staging / prod without rebuilding.
+ *
+ *   <AuthBaseUrlProvider value={process.env.AUTH_BASE_URL}>
+ *     {children}
+ *   </AuthBaseUrlProvider>
+ *
+ * Falls back to `NEXT_PUBLIC_AUTH_BASE_URL` (build-time inline) or the prod
+ * URL if no Provider wraps the tree — so it degrades safely.
+ */
+export function AuthBaseUrlProvider({
+  value,
+  children,
+}: {
+  value: string | undefined;
+  children: ReactNode;
+}) {
   return (
-    process.env.NEXT_PUBLIC_AUTH_BASE_URL ??
-    "https://auth.sdfwa.org"
+    <AuthBaseUrlContext.Provider value={value ?? null}>
+      {children}
+    </AuthBaseUrlContext.Provider>
   );
+}
+
+function useAuthBaseUrl(): string {
+  const fromContext = useContext(AuthBaseUrlContext);
+  if (fromContext) return fromContext;
+  if (typeof process !== "undefined") {
+    const fromEnv = process.env.NEXT_PUBLIC_AUTH_BASE_URL;
+    if (fromEnv) return fromEnv;
+  }
+  return "https://auth.sdfwa.org";
 }
 
 type AsyncState<T> =
@@ -19,6 +49,7 @@ type AsyncState<T> =
   | { status: "error"; data: null; error: Error };
 
 export function useSession(): AsyncState<Session> {
+  const baseUrl = useAuthBaseUrl();
   const [state, setState] = useState<AsyncState<Session>>({
     status: "loading",
     data: null,
@@ -26,7 +57,7 @@ export function useSession(): AsyncState<Session> {
   });
   useEffect(() => {
     let cancelled = false;
-    fetch(`${authBaseUrl()}/api/session`, {
+    fetch(`${baseUrl}/api/session`, {
       credentials: "include",
       cache: "no-store",
     })
@@ -61,11 +92,12 @@ export function useSession(): AsyncState<Session> {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [baseUrl]);
   return state;
 }
 
 export function useUser(): AsyncState<CurrentUser> {
+  const baseUrl = useAuthBaseUrl();
   const [state, setState] = useState<AsyncState<CurrentUser>>({
     status: "loading",
     data: null,
@@ -73,7 +105,7 @@ export function useUser(): AsyncState<CurrentUser> {
   });
   useEffect(() => {
     let cancelled = false;
-    fetch(`${authBaseUrl()}/api/user`, {
+    fetch(`${baseUrl}/api/user`, {
       credentials: "include",
       cache: "no-store",
     })
@@ -105,6 +137,6 @@ export function useUser(): AsyncState<CurrentUser> {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [baseUrl]);
   return state;
 }

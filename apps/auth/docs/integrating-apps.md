@@ -21,24 +21,26 @@ Then `bun install` at the repo root.
 
 ## Configure env
 
-You need two pairs of base-URL env vars: one for the auth app (so the consumer
-knows where to send the user / fetch sessions), and one for the consumer
+You need two server-side env vars: one for the auth app (so the consumer
+knows where to send the user / fetch sessions) and one for the consumer
 app's own origin (so it can build absolute `redirect=` URLs back to itself
-after sign-in). Each pair has a server-side variant and a `NEXT_PUBLIC_`
-variant so the same value is available during SSR and in the browser bundle.
+after sign-in).
 
 ```ini
 # apps/<your-app>/.env
-AUTH_BASE_URL=http://localhost:3002              # server-side calls to auth app
-NEXT_PUBLIC_AUTH_BASE_URL=http://localhost:3002  # client hooks + sign-in/out links
-
-APP_BASE_URL=http://localhost:3000               # this app's own origin (server)
-NEXT_PUBLIC_BASE_URL=http://localhost:3000       # same, for client-side links
+AUTH_BASE_URL=http://localhost:3002    # auth app
+APP_BASE_URL=http://localhost:3000     # this app's own origin
 ```
 
 In production these become `https://auth.sdfwa.org` and (e.g.)
-`https://diw.sdfwa.org`. Add all four to the app's `turbo.json` `build.env`
+`https://diw.sdfwa.org`. Add both to the app's `turbo.json` `build.env`
 so cache keys invalidate on change.
+
+> **Why no `NEXT_PUBLIC_*`?** Those would be inlined into the client bundle
+> at build time, which couples one Docker image to one set of URLs and
+> double-declares every value. Instead, read these on the server and pass
+> them down — see [Wire the client hooks](#wire-the-client-hooks) and the
+> sign-in/out sections below.
 
 If the consumer also calls the service-to-service endpoints
 (`/api/user/[memberId]`, `/api/users/search`), add `AUTH_SERVICE_TOKEN` as
@@ -109,6 +111,49 @@ is `"digital-services"`. For the Workspace admin setup, see
 
 ## Client-side: hooks
 
+### Wire the client hooks
+
+The `useSession` / `useUser` hooks need to know the auth app's base URL at
+request time. Supply it via `AuthBaseUrlProvider` from a root-level Server
+Component, sourcing the value from your server-side `AUTH_BASE_URL` env:
+
+```tsx
+// app/providers.tsx — "use client" wrapper for everything below
+"use client";
+import { AuthBaseUrlProvider } from "@sdfwa/auth-client/client";
+
+export function Providers({
+  authBaseUrl,
+  children,
+}: {
+  authBaseUrl: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <AuthBaseUrlProvider value={authBaseUrl}>
+      {children}
+    </AuthBaseUrlProvider>
+  );
+}
+
+// app/layout.tsx — Server Component reads env, passes value in
+import { Providers } from "@/components/providers";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <Providers authBaseUrl={process.env.AUTH_BASE_URL!}>
+          {children}
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+### Use the hooks
+
 ```tsx
 "use client";
 import { useSession, useUser } from "@sdfwa/auth-client/client";
@@ -123,6 +168,11 @@ export function NavUser() {
 
 Both hooks `fetch` with `credentials: "include"` so the browser sends the
 `.sdfwa.org` cookie. The auth app's CORS middleware allows any subdomain.
+
+If no `AuthBaseUrlProvider` wraps the tree, the hooks fall back to
+`process.env.NEXT_PUBLIC_AUTH_BASE_URL` (if you defined one at build time)
+and finally to `https://auth.sdfwa.org`. The Provider is the recommended
+path because it's runtime-resolved.
 
 ## (Future) Local JWT verification
 
@@ -150,21 +200,26 @@ The auth app validates the `redirect` param: it must be a URL whose host is
 **Use an absolute URL.** A relative path like `/fair-registration` *will*
 pass validation, but the auth app resolves it against its own origin, so the
 user lands on `auth.sdfwa.org/fair-registration` after sign-in instead of
-your app. Build the redirect using your own `APP_BASE_URL` /
-`NEXT_PUBLIC_BASE_URL`:
+your app. Build the redirect using your own `APP_BASE_URL`:
 
 ```ts
-// server
+// Server Component or server action
 const redirectTo = `${process.env.APP_BASE_URL}/fair-registration`;
 redirect(
   `${process.env.AUTH_BASE_URL}/login?redirect=${encodeURIComponent(redirectTo)}`,
 );
-
-// client
-const redirectTo = `${window.location.origin}${window.location.pathname}`;
-// or, during SSR before window exists:
-//   `${process.env.NEXT_PUBLIC_BASE_URL}/fair-registration`
 ```
+
+For client components that need these URLs, the recommended pattern is a
+runtime-config Provider: read env once in your root layout (Server
+Component), drop the values into a React context, and consume from any
+descendant client component via a `useAppConfig()` (or similarly-named)
+hook. See `apps/diw/lib/app-config.tsx` for the reference shape. This
+avoids both prop-drilling and `NEXT_PUBLIC_*` baking, and gives you one
+home for any future runtime config (feature flags, observability keys, etc).
+For the "return to current page" case, prefer
+`window.location.origin + window.location.pathname` at click time, falling
+back to `useAppConfig().appBaseUrl` for SSR.
 
 If you omit `redirect` entirely, users land on `POST_LOGIN_DEFAULT_REDIRECT`
 (in prod, `https://www.sdfwa.org`).
@@ -173,10 +228,12 @@ If you omit `redirect` entirely, users land on `POST_LOGIN_DEFAULT_REDIRECT`
 
 POST to `https://auth.sdfwa.org/api/auth/sign-out` with
 `Content-Type: application/json`. Don't form-POST — Better-Auth rejects
-that.
+that. Pass the auth base URL down as a prop from a server parent rather
+than reading `process.env` in the browser:
 
 ```ts
-await fetch(`${process.env.NEXT_PUBLIC_AUTH_BASE_URL}/api/auth/sign-out`, {
+// client component, receives `authBaseUrl` from server-rendered parent
+await fetch(`${authBaseUrl}/api/auth/sign-out`, {
   method: "POST",
   credentials: "include",
   headers: { "Content-Type": "application/json" },

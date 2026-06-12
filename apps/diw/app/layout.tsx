@@ -23,6 +23,13 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 });
 
+function loadConfig() {
+  return {
+    authBaseUrl: process.env.AUTH_BASE_URL ?? "https://auth.sdfwa.org",
+    appBaseUrl: process.env.APP_BASE_URL ?? "https://diw.sdfwa.org",
+  };
+}
+
 async function AppShell({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   const currentUser = session ? await getUser() : null;
@@ -57,7 +64,7 @@ export default function RootLayout({
       <body
         className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased`}
       >
-        <Providers>
+        <Providers config={loadConfig()}>
           <Suspense>
             <AppShell>{children}</AppShell>
           </Suspense>
