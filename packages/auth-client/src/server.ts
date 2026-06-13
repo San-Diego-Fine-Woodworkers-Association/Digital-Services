@@ -34,17 +34,37 @@ export async function getCurrentUser(cookieHeader: string): Promise<CurrentUser 
   return (await res.json()) as CurrentUser;
 }
 
-export async function requireMember(cookieHeader: string): Promise<Session> {
+/**
+ * Require a valid session — any signed-in user, regardless of entitlement.
+ * Throws "Unauthorized" when signed out. Use this for the upsell-funnel case
+ * (a known person who may hold no claims yet).
+ */
+export async function requireAuthenticated(
+  cookieHeader: string,
+): Promise<Session> {
   const s = await getServerSession(cookieHeader);
   if (!s) throw new Error("Unauthorized");
-  if (s.user.kind !== "member") throw new Error("Forbidden");
   return s;
 }
 
-export async function requireVolunteer(cookieHeader: string): Promise<Session> {
+/**
+ * Require the session to carry at least one of the listed claims (e.g.
+ * `"member"`, `"volunteer"`, `"tier:gold"`). Throws "Unauthorized" when signed
+ * out and "Forbidden" when signed in without a matching claim. An empty
+ * `claim` list is default-closed (always Forbidden) — use
+ * `requireAuthenticated` for "signed in at all."
+ */
+export async function requireClaim(
+  cookieHeader: string,
+  claim: string | string[],
+): Promise<Session> {
   const s = await getServerSession(cookieHeader);
   if (!s) throw new Error("Unauthorized");
-  if (s.user.kind !== "volunteer") throw new Error("Forbidden");
+  const allowed = Array.isArray(claim) ? claim : [claim];
+  const userClaims = s.user.claims ?? [];
+  if (allowed.length === 0 || !allowed.some((c) => userClaims.includes(c))) {
+    throw new Error("Forbidden");
+  }
   return s;
 }
 

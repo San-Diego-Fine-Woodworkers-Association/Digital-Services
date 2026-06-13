@@ -1,7 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import type { JWTPayload } from "jose";
 
-import type { SessionUser, UserKind } from "./types";
+import type { SessionUser } from "./types";
 
 type JwksEntry = { jwks: ReturnType<typeof createRemoteJWKSet>; createdAt: number };
 const jwksCache = new Map<string, JwksEntry>();
@@ -19,10 +19,10 @@ function getJwks(baseUrl: string) {
 export type VerifiedJwt = JWTPayload & {
   sub: string;
   email?: string;
-  kind?: UserKind | null;
   memberId?: string | null;
   membership?: string | null;
   groups?: string[];
+  claims?: string[];
 };
 
 /**
@@ -52,9 +52,9 @@ export function payloadToSessionUser(payload: VerifiedJwt): SessionUser {
   return {
     id: payload.sub,
     email: payload.email ?? "",
-    kind: payload.kind ?? null,
     memberId: payload.memberId ?? null,
     membership: payload.membership ?? null,
     groups: payload.groups ?? [],
+    claims: payload.claims ?? [],
   };
 }

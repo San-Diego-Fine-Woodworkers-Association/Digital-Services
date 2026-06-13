@@ -33,14 +33,44 @@ ProClass│ api130.imperisoft│◄────────┤ /api/cron/proclas
 
 ## Identity model
 
-A signed-in user lives in the Better-Auth `user` table with three SDFWA-specific
-additional fields:
+A signed-in user lives in the Better-Auth `user` table with these SDFWA-specific
+additional fields. **These are internal** — `kind` in particular is never
+exposed to consumer apps:
 
-- `kind` — `"member"` or `"volunteer"`.
-- `memberId` — only set for members; the ProClass `ContactId`.
-- `membership` — only set for members; the current Active ProClass membership
-  type (e.g. `"Bronze"`, `"Shop - Gold Current"`). Null if the contact has no
-  Active membership row.
+- `kind` — `"member"` (authenticated via ProClass) or `"volunteer"`
+  (authenticated via @sdfwa.org Google). This records *how someone signed in*,
+  not what they're entitled to. Used internally to route detail lookups and
+  revocation; **not emitted** in any public payload.
+- `memberId` — only set for ProClass contacts; the ProClass `ContactId`.
+- `membership` — only set for ProClass contacts; the current Active ProClass
+  membership type (e.g. `"Bronze"`, `"Shop - Gold Current"`). Null if the
+  contact has no Active membership row.
+
+### Identity vs. entitlement (the public contract)
+
+Consumer apps authorize on a single **claims** array, derived once by the auth
+app (`lib/auth/entitlement.ts`) and exposed on the session, JWT, and
+`/api/session`:
+
+- `claims: string[]` — the canonical entitlement set:
+  - `"volunteer"` — signed in via Google (staff).
+  - `"member"` + `"tier:<level>"` — holds an Active ProClass tier. The level is
+    normalized from the free-text `membership` string to one of
+    `bronze | silver | gold | lifetime`.
+  - `[]` — signed in but no entitlement: a ProClass contact with no Active tier.
+    This is the **upsell state** (a known person you can prompt to renew).
+
+There is no separate scalar `tier` field — it would duplicate the `tier:<level>`
+claim. For the typed value (display / "which level"), use `getTier(claims)` from
+`@sdfwa/auth-client`; to gate, use `hasAnyTier` / `hasAnyClaim`.
+
+> **Authentication and entitlement are separate axes.** Being signed in (a valid
+> session) does not imply the `member` claim. The `member` claim means "holds an
+> Active ProClass tier" — i.e. paying — and in production it applies to a
+> *minority* of signed-in ProClass contacts (most have a null `membership`).
+> Gate "is this a known person?" on session presence; gate "is this a paying
+> member / tier X?" on `claims`. Consumers must never re-derive entitlement from
+> the raw `membership` string.
 
 A volunteer also has a row in `volunteers` keyed by the Better-Auth user id,
 with the Google `sub`. Members do **not** have a row in `volunteers`; their
@@ -90,8 +120,8 @@ just persisted.
 Better-Auth's `jwt` plugin publishes a JWKS at `/api/auth/jwks` (EdDSA key
 pair persisted in the `jwks` table, rotated by Better-Auth on its own
 schedule). `POST /api/auth/jwt-refresh` mints a short-lived (15 min by
-default) JWT for the current session, with claims including `sub`, `email`,
-`kind`, `memberId`, `membership`, `groups`. Consumer apps can verify the JWT locally
+default) JWT for the current session, with a payload including `sub`, `email`,
+`memberId`, `membership`, `groups`, and the `claims` array. Consumer apps can verify the JWT locally
 via `verifyJwt()` from `@sdfwa/auth-client` — no round-trip to the auth app
 on the hot path.
 

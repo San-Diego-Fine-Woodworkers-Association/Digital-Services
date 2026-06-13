@@ -10,8 +10,7 @@ export default async function ProfilePage() {
 
 	const currentUser = await getUser();
 	const isAdmin = sessionIsAdmin(session);
-	const member =
-		currentUser && "member" in currentUser ? currentUser.member : null;
+	const member = currentUser?.member ?? null;
 
 	return (
 		<div className="p-4 mx-auto w-full max-w-[1200px]">

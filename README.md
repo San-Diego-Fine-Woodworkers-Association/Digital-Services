@@ -50,7 +50,20 @@ For local Postgres + Adminer (DB UI on port `8080`):
 ```bash
 docker compose up -d
 ```
-Then create a database named `diw` if your connection string uses it (e.g. via Adminer or `psql`).
+Then create the database your connection string uses (e.g. `diw`, and `auth`
+for the auth app) via Adminer or `psql`, and **apply migrations**:
+```bash
+bun run db:migrate
+```
+Run this every time you bring the database up against a fresh volume — it
+applies all pending migrations across apps so your local schema matches
+production.
+
+> **Use `db:migrate`, not `db:push`, for the auth app.** `db:push` syncs the
+> schema without recording Drizzle's migration journal, so a later
+> `db:migrate` re-runs every migration from `0000` and fails with "relation
+> already exists." If a local DB lands in that state, drop and recreate it,
+> then `db:migrate`.
 
 ### 4. Run the app
 
@@ -86,9 +99,13 @@ bun run start
 
 Generate and apply migrations:
 ```bash
-bun run db:generate
-bun run db:migrate
+bun run db:generate   # create migration files from schema changes (interactive)
+bun run db:migrate    # apply pending migrations (run after `docker compose up`)
 ```
+`db:generate` prompts when it can't tell a column rename from a drop+add —
+pick the `~ old › new   rename column` option to preserve data. It emits DDL
+only, so any data backfill/remap must be appended to the generated `.sql` by
+hand.
 
 ## Workspaces
 - `diw` — Main Next.js application for Design in Wood project.

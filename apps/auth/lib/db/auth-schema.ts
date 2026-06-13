@@ -15,7 +15,11 @@ export const user = pgTable("user", {
   banned: boolean("banned").default(false),
   banReason: text("ban_reason"),
   banExpires: timestamp("ban_expires"),
-  kind: text("kind"),
+  // How the user authenticated — identity origin ONLY, never authorization.
+  // "proclass" (member login) | "google" (volunteer SSO). Used internally to
+  // route detail lookups, revocation, and the `volunteer` claim. Not exposed
+  // in any public payload; authorize on `claims` / `tier`, not on this.
+  accountOrigin: text("account_origin"),
   memberId: text("member_id").unique(),
   membership: text("membership"),
   // Mirror of volunteers.groups, JSON-stringified, so Better-Auth carries

@@ -123,7 +123,7 @@ export const memberLoginPlugin = () => {
             createdAt: Date;
             updatedAt: Date;
             image?: string | null;
-            kind?: string | null;
+            accountOrigin?: string | null;
             memberId?: string | null;
             membership?: string | null;
           };
@@ -139,7 +139,7 @@ export const memberLoginPlugin = () => {
               name:
                 [member.firstName, member.lastName].filter(Boolean).join(" ") ||
                 member.email,
-              kind: "member",
+              accountOrigin: "proclass",
               memberId: member.memberId,
               membership: member.membership,
               emailVerified: true,
@@ -149,18 +149,18 @@ export const memberLoginPlugin = () => {
           } else {
             user = existing;
             if (
-              user.kind !== "member" ||
+              user.accountOrigin !== "proclass" ||
               user.memberId !== member.memberId ||
               user.membership !== member.membership
             ) {
               await ctx.context.internalAdapter.updateUser(user.id, {
-                kind: "member",
+                accountOrigin: "proclass",
                 memberId: member.memberId,
                 membership: member.membership,
               } as unknown as Parameters<typeof ctx.context.internalAdapter.updateUser>[1]);
               user = {
                 ...user,
-                kind: "member",
+                accountOrigin: "proclass",
                 memberId: member.memberId,
                 membership: member.membership,
               };

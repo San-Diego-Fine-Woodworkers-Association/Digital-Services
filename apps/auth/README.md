@@ -31,6 +31,11 @@ the only social provider.
    ```bash
    bun run db:migrate --filter=auth
    ```
+   Run this whenever you bring the DB up against a fresh volume, so the local
+   schema matches production. **Use `db:migrate`, not `db:push`** — `db:push`
+   skips Drizzle's migration journal, which makes a later `db:migrate` re-run
+   everything from `0000` and fail with "relation already exists." If that
+   happens, drop and recreate the `auth` database, then `db:migrate`.
 4. Populate `apps/auth/.env` (see [Configuration](#configuration) below).
 5. Start the dev server:
    ```bash
