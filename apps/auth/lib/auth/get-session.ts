@@ -11,15 +11,3 @@ export async function requireAuth() {
   if (!session?.user) throw new Error("Unauthorized");
   return session;
 }
-
-export async function requireMember() {
-  const session = await requireAuth();
-  if (session.user.kind !== "member") throw new Error("Forbidden");
-  return session;
-}
-
-export async function requireVolunteer() {
-  const session = await requireAuth();
-  if (session.user.kind !== "volunteer") throw new Error("Forbidden");
-  return session;
-}

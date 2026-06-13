@@ -24,12 +24,12 @@ export async function enforceActiveOrRevoke(
 ): Promise<EnforcedSession | null> {
   if (!session?.user) return session;
   const u = session.user as typeof session.user & {
-    kind?: string | null;
+    accountOrigin?: string | null;
     memberId?: string | null;
     email: string;
   };
 
-  if (u.kind === "member" && u.memberId) {
+  if (u.accountOrigin === "proclass" && u.memberId) {
     const [member] = await db
       .select({ active: proclassUsersTable.active })
       .from(proclassUsersTable)
@@ -46,7 +46,7 @@ export async function enforceActiveOrRevoke(
     return null;
   }
 
-  if (u.kind === "volunteer") {
+  if (u.accountOrigin === "google") {
     const [v] = await db
       .select({ lastGroupsSyncAt: volunteersTable.lastGroupsSyncAt })
       .from(volunteersTable)

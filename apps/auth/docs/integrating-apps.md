@@ -70,14 +70,58 @@ Both helpers forward the browser's cookies to the auth app, which validates
 the session and (for `getCurrentUser`) returns the joined `proclass_users`
 or `volunteers` row.
 
-Helpers that throw on the wrong identity:
+Helpers that throw:
 
 ```ts
-import { requireMember, requireVolunteer } from "@sdfwa/auth-client/server";
+import { requireAuthenticated, requireClaim } from "@sdfwa/auth-client/server";
 
-await requireMember(cookieHeader);    // throws "Unauthorized" or "Forbidden"
-await requireVolunteer(cookieHeader);
+await requireAuthenticated(cookieHeader);          // any signed-in user
+await requireClaim(cookieHeader, "member");         // holds an Active tier (paying)
+await requireClaim(cookieHeader, ["member", "volunteer"]); // members OR staff
+await requireClaim(cookieHeader, "tier:gold");      // specific tier
 ```
+
+`requireAuthenticated` throws `"Unauthorized"` when signed out; `requireClaim`
+throws `"Unauthorized"` when signed out and `"Forbidden"` when signed in without
+a matching claim.
+
+> **Authentication ≠ entitlement.** Being signed in does not imply the `member`
+> claim. The `member` claim means "holds an Active ProClass tier" — i.e. paying
+> — and in production that's a *minority* of signed-in ProClass contacts (most
+> have no tier). Use `requireAuthenticated` for "is this a known person"
+> (e.g. to show a renew/upsell prompt); use `requireClaim("member")` for "is
+> this a paying member." Never re-derive entitlement from the raw `membership`
+> string.
+
+## Gating on membership tier
+
+The auth app normalizes ProClass' messy free-text `MembershipType`
+(`"Bronze"`, `"Shop - Gold Current"`, `"Shop - Silver Grandfather"`, …) into a
+`tier:<level>` claim, where level is one of `bronze | silver | gold | lifetime`.
+Gate on claims, not on the raw string:
+
+```ts
+import { hasAnyClaim, hasAnyTier, isMember, getTier } from "@sdfwa/auth-client";
+
+const claims = session?.user.claims ?? [];
+
+isMember(claims);                       // any paid tier
+hasAnyTier(claims, ["gold", "silver"]); // these tiers
+hasAnyClaim(claims, ["member", "volunteer"]); // members OR staff
+
+// the typed level, for display / "which tier" (not gating)
+const tier = getTier(claims); // "gold" | ... | null
+```
+
+To populate a checkbox-style rule editor with the live tiers (and the raw
+ProClass strings behind each, for diagnostics), use
+`GET /api/memberships/tiers` — see
+[Server-to-server lookups](#server-to-server-lookups-no-user-context).
+
+Decide deliberately what a **null-tier** member may reach: they hold no `tier:*`
+or `member` claim, so every tier check above fails for them. A "known members"
+area that should admit any signed-in person uses `requireAuthenticated`; a
+paid-only area uses `requireClaim("member")`.
 
 ## Gating on Workspace groups
 
@@ -183,7 +227,8 @@ to the auth app, mint a JWT once and verify locally:
 import { verifyJwt } from "@sdfwa/auth-client";
 
 const payload = await verifyJwt(token, { authBaseUrl: process.env.AUTH_BASE_URL });
-// { sub, email, kind, memberId, membership, exp, iss, aud }
+// { sub, email, memberId, membership, claims, groups, exp, iss, aud }
+// Use payloadToSessionUser(payload) to get the same SessionUser shape as /api/session.
 ```
 
 `verifyJwt` fetches and caches the JWKS for one hour. To get a token in the
@@ -285,6 +330,20 @@ const res = await fetch(
 );
 const { results } = await res.json();
 // results: { memberId, name, email, membership }[]
+```
+
+**Membership tiers** — for access-rule editors that list the normalized tiers
+(Gold/Silver/Bronze/Lifetime) as choices, with the raw ProClass strings behind
+each for diagnostics:
+
+```ts
+const res = await fetch(`${process.env.AUTH_BASE_URL}/api/memberships/tiers`, {
+  headers: { Authorization: `Bearer ${process.env.AUTH_SERVICE_TOKEN}` },
+  cache: "no-store",
+});
+const { tiers, unmapped } = await res.json();
+// tiers: { tier, count, rawTypes: { membership, count }[] }[]  (busiest first)
+// unmapped: { membership, count }[]  — active types matching no known tier
 ```
 
 Provision the token by setting `SERVICE_TOKEN` in the auth app's prod env,

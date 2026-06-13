@@ -44,10 +44,19 @@ export default async function WhoAmI() {
       )[0] ?? null;
   }
 
-  const safeSession = session
+  const s = session as
+    | (typeof session & {
+        claims?: unknown;
+        groups?: unknown;
+      })
+    | null;
+  const safeSession = s
     ? {
-        user: session.user,
-        session: redactSession(session.session),
+        user: s.user,
+        // Derived entitlement (siblings of user/session in the customSession shape).
+        claims: s.claims ?? [],
+        groups: s.groups ?? [],
+        session: redactSession(s.session),
       }
     : null;
 

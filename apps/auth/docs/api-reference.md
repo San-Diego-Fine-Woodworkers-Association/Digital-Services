@@ -77,9 +77,10 @@ the session cookie. Does **not** clear the device cookie.
 
 ### `GET /api/auth/get-session`
 
-Provided by Better-Auth. Returns the raw session object including additional
-fields (`kind`, `memberId`, `membership`). Returns `null` (200) when no
-session.
+Provided by Better-Auth. Returns the raw session object including the derived
+`memberId`, `membership`, `groups`, and `claims`. Returns `null` (200)
+when no session. Prefer [`/api/session`](#get-apisession) for consumer apps —
+it's the documented, stable shape.
 
 ### `POST /api/auth/jwt-refresh`
 
@@ -112,49 +113,55 @@ Cheap session summary for client hooks. Always 200.
   "user": {
     "id": "...",
     "email": "...",
-    "kind": "member" | "volunteer" | null,
     "memberId": "..." | null,
     "membership": "..." | null,
-    "groups": ["digital-services", ...]
+    "groups": ["digital-services", ...],
+    "claims": ["member", "tier:gold", ...]
   },
   "expiresAt": "<ISO>"
 }
 ```
 
-`groups` is always an array — `[]` for members, anonymous, and volunteers
-without group memberships. See [workspace-groups.md](workspace-groups.md).
+Authorize on `claims`, not on account origin — `kind` is not exposed. The claim
+set is:
+
+- `"volunteer"` — signed in via Google (staff).
+- `"member"` + `"tier:<level>"` — holds an Active ProClass tier (i.e. paying).
+  The level is one of `bronze | silver | gold | lifetime`, normalized from the
+  raw `membership` string.
+- `[]` — signed in with no entitlement: a ProClass contact with no Active tier
+  (the upsell state). A signed-in user is **not** necessarily a `member`.
+
+There is no scalar `tier` field — use `getTier(claims)` from
+`@sdfwa/auth-client` for the typed value. `membership` retains the raw ProClass
+string for display/debug. `groups` is always an array (`[]` when none). See the
+identity model in [architecture.md](architecture.md#identity-model) and
+[workspace-groups.md](workspace-groups.md).
 
 Or `{ "user": null }` when signed out.
 
 ### `GET /api/user`
 
-Signed-in user joined with the appropriate detail row.
-
-For members:
-
-```json
-{
-  "kind": "member",
-  "id": "...",
-  "email": "...",
-  "name": "...",
-  "memberId": "...",
-  "member": { /* full proclass_users row, or null */ }
-}
-```
-
-For volunteers:
+Signed-in user joined with the appropriate detail row. One flat shape;
+discriminate on which detail object is non-null (`member` for ProClass
+contacts, `volunteer` for Google staff). `kind` is not exposed.
 
 ```json
 {
-  "kind": "volunteer",
   "id": "...",
   "email": "...",
   "name": "...",
+  "memberId": "..." | null,
   "groups": ["digital-services", ...],
+  "claims": ["member", "tier:gold", ...],
+  "member": { /* full proclass_users row, or null */ },
   "volunteer": { /* full volunteers row including its own `groups`, or null */ }
 }
 ```
+
+A ProClass contact populates `member` whether or not they hold a tier — so
+`member !== null` identifies the contact, while `claims` say whether they're
+entitled.
 
 | Status | Meaning |
 | --- | --- |
@@ -201,6 +208,46 @@ dialog).
 | --- | --- |
 | 200 | Always returned for valid requests, including no matches (`results: []`). |
 | 401 | Missing or wrong bearer. |
+
+### `GET /api/memberships/tiers` (service-to-service)
+
+Normalized membership **tiers** across active members, for access-rule editors
+that gate on colloquial tiers — Gold, Silver, Bronze, Lifetime — rather than the
+raw ProClass strings (e.g. the WordPress gating plugin). Each tier carries the
+raw `MembershipType` values that fold into it (diagnostics), and any active
+membership that maps to no known tier is reported under `unmapped` so ProClass
+taxonomy drift is visible. Tiers and raw types are ordered busiest-first.
+
+- Required header: `Authorization: Bearer ${SERVICE_TOKEN}`.
+- No CORS, no cookies. Don't expose this to browsers.
+- "Active" means `proclass_users.active` (the contact is live in the ETL), not
+  "paying." Contacts with a null `membership` are excluded, so the summed tier
+  counts are smaller than the total active-contact count.
+
+```jsonc
+// 200
+{
+  "tiers": [
+    {
+      "tier": "silver",
+      "count": 352,
+      "rawTypes": [
+        { "membership": "Shop - Silver Current", "count": 209 },
+        { "membership": "Shop - Silver Grandfather", "count": 93 }
+      ]
+    }
+  ],
+  "unmapped": [
+    { "membership": "Some New ProClass Type", "count": 3 }
+  ]
+}
+```
+
+| Status | Meaning |
+| --- | --- |
+| 200 | Tiers + unmapped breakdown (both possibly empty). |
+| 401 | Missing or wrong bearer. |
+| 500 | `SERVICE_TOKEN` not configured. |
 
 ### `GET /api/auth/jwks`
 

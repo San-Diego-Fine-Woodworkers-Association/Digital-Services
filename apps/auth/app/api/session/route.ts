@@ -10,19 +10,21 @@ export async function GET() {
     return NextResponse.json({ user: null }, { status: 200 });
   }
   const u = session.user as typeof session.user & {
-    kind?: string | null;
     memberId?: string | null;
     membership?: string | null;
   };
-  const s = session as typeof session & { groups?: string[] };
+  const s = session as typeof session & {
+    claims?: string[];
+    groups?: string[];
+  };
   return NextResponse.json({
     user: {
       id: u.id,
       email: u.email,
-      kind: u.kind ?? null,
       memberId: u.memberId ?? null,
       membership: u.membership ?? null,
       groups: s.groups ?? [],
+      claims: s.claims ?? [],
     },
     expiresAt: session.session.expiresAt,
   });

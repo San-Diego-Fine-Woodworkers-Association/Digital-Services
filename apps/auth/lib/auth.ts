@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 
 import { db, user as userTable, volunteersTable } from "@/lib/db";
 import { memberLoginPlugin } from "./auth/member-login-plugin";
+import { deriveEntitlement } from "./auth/entitlement";
 import { fetchUserGroups } from "./google/admin-client";
 import { log } from "./observability";
 
@@ -62,7 +63,7 @@ const baseOptions = {
   ],
   user: {
     additionalFields: {
-      kind: { type: "string" },
+      accountOrigin: { type: "string" },
       memberId: { type: "string" },
       membership: { type: "string" },
       groupsJson: { type: "string" },
@@ -82,7 +83,7 @@ const baseOptions = {
           email: profile.email,
           name: profile.name ?? profile.email,
           image: profile.picture,
-          kind: "volunteer",
+          accountOrigin: "google",
           memberId: null,
           membership: null,
         };
@@ -145,16 +146,17 @@ const baseOptions = {
         // Better-Auth has already loaded with the user row.
         definePayload: ({ user }) => {
           const u = user as typeof user & {
-            kind?: string | null;
+            accountOrigin?: string | null;
             memberId?: string | null;
             membership?: string | null;
             groupsJson?: string;
           };
+          const { claims } = deriveEntitlement(u.accountOrigin, u.membership);
           return {
             email: user.email,
-            kind: u.kind ?? null,
             memberId: u.memberId ?? null,
             membership: u.membership ?? null,
+            claims,
             groups: parseGroupsJson(u.groupsJson),
           };
         },
@@ -164,13 +166,18 @@ const baseOptions = {
 } satisfies BetterAuthOptions;
 
 const customSessionPlugin = customSession(async ({ user, session }) => {
-  const u = user as typeof user & { groupsJson?: string };
+  const u = user as typeof user & {
+    accountOrigin?: string | null;
+    membership?: string | null;
+    groupsJson?: string;
+  };
+  const { claims } = deriveEntitlement(u.accountOrigin, u.membership);
   return {
     user,
     session,
-    kind: user.kind ?? null,
     memberId: user.memberId ?? null,
     membership: user.membership ?? null,
+    claims,
     groups: parseGroupsJson(u.groupsJson),
   };
 }, baseOptions);
