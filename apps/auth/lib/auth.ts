@@ -60,6 +60,7 @@ const baseOptions = {
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
+    "http://localhost:8888", // local WordPress dev harness (sdfwa-auth plugin)
   ],
   user: {
     additionalFields: {
