@@ -1,16 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@sdfwa/ui/components/button";
 import { Card, CardContent } from "@sdfwa/ui/components/card";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@sdfwa/ui/components/field";
+import { Field, FieldGroup, FieldLabel } from "@sdfwa/ui/components/field";
 import { Input } from "@sdfwa/ui/components/input";
+import { Notification } from "@sdfwa/ui/components/notification";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -98,17 +95,44 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
             }}
           />
         ) : (
-          <form onSubmit={isVolunteer ? (e) => e.preventDefault() : handleMemberSubmit}>
+          <form onSubmit={isVolunteer ? (e) => { e.preventDefault(); handleGoogleClick(); } : handleMemberSubmit}>
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Sign In</h1>
-                <p className="text-muted-foreground text-balance text-sm">
-                  Members use your email and Member ID. SDFWA staff &amp;
-                  volunteers use your Google Workspace account.
+                <h1 className="text-lg font-thin mb-2" style={{ fontFamily: "Cardo, Franklin Gothic" }}>
+                  San Diego Fine Woodworkers
+                </h1>
+                <h1 className="text-4xl font-bold mb-2">Sign In</h1>
+                <p className="text-muted-foreground text-balance text">
+                  Use your ProClass email and Member ID, or @sdfwa.org volunteer email.
                 </p>
               </div>
 
-              {error && <FieldError>{error}</FieldError>}
+              {error && (
+                <Notification
+                  level="error"
+                  title={error}
+                  dismissible
+                  onDismiss={() => setError(null)}
+                >
+                  <p>
+                    Still stuck? Email{" "}
+                    <a
+                      href="mailto:digital-services@sdfwa.org"
+                      className="font-medium underline underline-offset-4"
+                    >
+                      digital-services@sdfwa.org
+                    </a>{" "}
+                    for help with technical issues, or{" "}
+                    <a
+                      href="mailto:helpdesk@sdfwa.org"
+                      className="font-medium underline underline-offset-4"
+                    >
+                      helpdesk@sdfwa.org
+                    </a>{" "}
+                    for help with your login details.
+                  </p>
+                </Notification>
+              )}
 
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -169,6 +193,20 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                       {submitting ? "Signing in…" : "Sign In"}
                     </Button>
                   </Field>
+                  <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                    <Link
+                      href="/faq#member-id"
+                      className="underline-offset-4 hover:underline"
+                    >
+                      Forgot Member ID
+                    </Link>
+                    <Link
+                      href="/faq#email"
+                      className="underline-offset-4 hover:underline"
+                    >
+                      Forgot email
+                    </Link>
+                  </div>
                 </>
               )}
             </FieldGroup>
