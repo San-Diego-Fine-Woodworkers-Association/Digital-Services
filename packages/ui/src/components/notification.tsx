@@ -55,7 +55,7 @@ function Notification({
   children,
   ...props
 }: NotificationProps) {
-  const resolvedLevel = level ?? "error";
+  const resolvedLevel: keyof typeof levelIcon = level ?? "error";
   const Icon = levelIcon[resolvedLevel];
 
   return (

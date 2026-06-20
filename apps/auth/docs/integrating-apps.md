@@ -271,7 +271,36 @@ If you omit `redirect` entirely, users land on `POST_LOGIN_DEFAULT_REDIRECT`
 
 ## Sign-out
 
-POST to `https://auth.sdfwa.org/api/auth/sign-out` with
+There are two ways to sign a user out. Prefer the first.
+
+### Recommended: link to `/logout` (plain GET)
+
+Send users to `https://auth.sdfwa.org/logout?redirect=<encoded>`. This mirrors
+the `/login` entry point: a plain navigation — no `fetch`, no CORS, no client
+JS. The auth app clears the session cookie server-side (with the correct
+cross-subdomain attributes) and redirects to the validated `redirect`.
+
+```html
+<!-- WordPress Elementor button, any plain link -->
+<a href="https://auth.sdfwa.org/logout?redirect=https://www.sdfwa.org/">
+  Log out
+</a>
+```
+
+The `redirect` param uses the same open-redirect guard as `/login` (must be a
+relative path or a `sdfwa.org` / `*.sdfwa.org` / `localhost` URL). As with
+sign-in, **use an absolute URL** so the user lands back on your app rather than
+on `auth.sdfwa.org`. If `redirect` is omitted, users land on
+`POST_LOGIN_DEFAULT_REDIRECT` (in prod, `https://www.sdfwa.org`).
+
+Note: like Better-Auth's `signOut`, this clears the **session** cookie but
+leaves the **device** cookie intact, so a returning user on a trusted device
+may skip straight back through login.
+
+### Alternative: in-page POST
+
+When you want to sign out without navigating away (e.g. an avatar menu in a
+React app), POST to `https://auth.sdfwa.org/api/auth/sign-out` with
 `Content-Type: application/json`. Don't form-POST — Better-Auth rejects
 that. Pass the auth base URL down as a prop from a server parent rather
 than reading `process.env` in the browser:
