@@ -151,6 +151,8 @@ contacts, `volunteer` for Google staff). `kind` is not exposed.
   "id": "...",
   "email": "...",
   "name": "...",
+  "firstName": "..." | null,
+  "lastName": "..." | null,
   "memberId": "..." | null,
   "groups": ["digital-services", ...],
   "claims": ["member", "tier:gold", ...],
@@ -162,6 +164,12 @@ contacts, `volunteer` for Google staff). `kind` is not exposed.
 A ProClass contact populates `member` whether or not they hold a tier — so
 `member !== null` identifies the contact, while `claims` say whether they're
 entitled.
+
+`firstName` / `lastName` are a uniform top-level convenience for consumers that
+just want to render a given name. For ProClass members they come from the synced
+`proclass_users` columns; for volunteers (and any member with empty ProClass name
+fields) they're split from `name` (first token / remainder, so `lastName` may be
+`""`). The per-source detail (`member.firstName`, etc.) remains available.
 
 | Status | Meaning |
 | --- | --- |

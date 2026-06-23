@@ -60,6 +60,10 @@ export type CurrentUser = {
   id: string;
   email: string;
   name: string;
+  /** First name, uniform across members (from ProClass) and volunteers (split from `name`). */
+  firstName: string | null;
+  /** Last name; may be `""` for single-token names. */
+  lastName: string | null;
   memberId: string | null;
   groups: string[];
   claims: string[];
