@@ -8,6 +8,8 @@
     "db:migrate": "turbo run db:migrate",
     "db:generate": "turbo run db:generate",
     "start:dev": "node scripts/dev.js",
+    "link:design-system": "node scripts/link-design-system.js",
+    "unlink:design-system": "node scripts/unlink-design-system.js",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
