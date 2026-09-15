@@ -1,0 +1,12 @@
+@import "@sdwa/tokens/theme.css";
+
+/*
+ * @sdwa/tokens' theme.css defines the CSS custom properties (--background,
+ * etc.) but ships no @source directives of its own — it has no idea where
+ * a consuming app's files live. Tailwind's automatic source detection also
+ * never looks inside node_modules, so @sdwa/components' compiled dist
+ * (where AppLayout's "min-h-screen bg-background text-foreground" utility
+ * classes live as plain strings) needs to be opted in explicitly, or those
+ * classes never make it into the generated CSS.
+ */
+@source "../node_modules/@sdwa/components/dist/**/*.{js,cjs}";
