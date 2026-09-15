@@ -1,8 +1,8 @@
 import { and, eq, notInArray, sql } from "drizzle-orm";
 
 import { db, proclassUsersTable, syncRunsTable } from "../db";
-import { fetchAllContacts, fetchMembershipsByAccountIds } from "./client";
-import { getPrimaryAccountId, joinContactsAndMemberships } from "./transform";
+import { fetchAllContacts, fetchAllMemberships } from "./client";
+import { joinContactsAndMemberships } from "./transform";
 import type { ProClassMembership } from "./types";
 
 export type SyncRunResult = {
@@ -27,14 +27,7 @@ export async function runProClassSync(): Promise<SyncRunResult> {
 
   try {
     const contacts = await fetchAllContacts();
-    const accountIds = Array.from(
-      new Set(
-        contacts
-          .map(getPrimaryAccountId)
-          .filter((id): id is number => id !== null),
-      ),
-    );
-    const memberships = await fetchMembershipsByAccountIds(accountIds);
+    const memberships = await fetchAllMemberships();
 
     const byAccount = new Map<number, ProClassMembership[]>();
     for (const m of memberships) {
