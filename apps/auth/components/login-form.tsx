@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { Button, Card, CardContent } from "@sdwa/components";
-import { Field, FieldGroup, FieldLabel } from "@sdfwa/ui/components/field";
-import { Input } from "@sdfwa/ui/components/input";
+import { Button, Card, CardContent, FieldGroup } from "@sdwa/components";
 import { Notification } from "@sdfwa/ui/components/notification";
 
 import { authClient } from "@/lib/auth-client";
@@ -95,7 +93,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
           />
         ) : (
           <form onSubmit={isVolunteer ? (e) => { e.preventDefault(); handleGoogleClick(); } : handleMemberSubmit}>
-            <FieldGroup>
+            <div className="flex w-full flex-col gap-5">
               <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-lg font-thin mb-2" style={{ fontFamily: "Cardo, Franklin Gothic" }}>
                   San Diego Fine Woodworkers
@@ -133,25 +131,25 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                 </Notification>
               )}
 
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setForceMember(false);
-                  }}
-                  required
-                  autoComplete="email"
-                />
-              </Field>
+              <FieldGroup
+                label="Email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(value) => {
+                  setEmail(value);
+                  setForceMember(false);
+                }}
+                isRequired
+                inputProps={{
+                  placeholder: "you@example.com",
+                  autoComplete: "email",
+                }}
+              />
 
               {isVolunteer ? (
                 <>
-                  <Field>
+                  <div className="flex w-full flex-col gap-2">
                     <Button
                       type="button"
                       variant="primary"
@@ -161,7 +159,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                     >
                       {submitting ? "Redirecting…" : "Continue with Google"}
                     </Button>
-                  </Field>
+                  </div>
                   <button
                     type="button"
                     className="text-muted-foreground text-xs underline-offset-4 hover:underline"
@@ -172,19 +170,19 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                 </>
               ) : (
                 <>
-                  <Field>
-                    <FieldLabel htmlFor="memberId">Member ID</FieldLabel>
-                    <Input
-                      id="memberId"
-                      type="password"
-                      placeholder="Your SDFWA Member ID"
-                      value={memberId}
-                      onChange={(e) => setMemberId(e.target.value)}
-                      required
-                      autoComplete="off"
-                    />
-                  </Field>
-                  <Field>
+                  <FieldGroup
+                    label="Member ID"
+                    name="memberId"
+                    type="password"
+                    value={memberId}
+                    onChange={(value) => setMemberId(value)}
+                    isRequired
+                    inputProps={{
+                      placeholder: "Your SDFWA Member ID",
+                      autoComplete: "off",
+                    }}
+                  />
+                  <div className="flex w-full flex-col gap-2">
                     <Button
                       type="submit"
                       variant="primary"
@@ -193,7 +191,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                     >
                       {submitting ? "Signing in…" : "Sign In"}
                     </Button>
-                  </Field>
+                  </div>
                   <div className="flex flex-col items-center gap-4 text-muted-foreground">
                     <Link
                       href="/faq#member-id"
@@ -210,7 +208,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                   </div>
                 </>
               )}
-            </FieldGroup>
+            </div>
           </form>
         )}
       </CardContent>
@@ -273,7 +271,7 @@ function PendingState({
   }, [pollToken, onReady, onTimeout]);
 
   return (
-    <FieldGroup>
+    <div className="flex w-full flex-col gap-5">
       <div className="flex flex-col items-center gap-3 text-center">
         <h1 className="text-2xl font-bold">Check your email</h1>
         <p className="text-muted-foreground text-sm">
@@ -301,6 +299,6 @@ function PendingState({
           </a>
         </div>
       )}
-    </FieldGroup>
+    </div>
   );
 }
