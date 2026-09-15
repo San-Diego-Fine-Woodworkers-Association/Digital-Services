@@ -125,7 +125,7 @@ export async function getOrCreateMemberSinceFieldId(): Promise<string> {
   );
   if (found) return found.id;
 
-  const created = await request<{ id: string }>(
+  const created = await request<{ customField: { id: string } }>(
     `/locations/${ghlLocationId()}/customFields`,
     {
       method: "POST",
@@ -136,5 +136,5 @@ export async function getOrCreateMemberSinceFieldId(): Promise<string> {
       }),
     },
   );
-  return created.id;
+  return created.customField.id;
 }
