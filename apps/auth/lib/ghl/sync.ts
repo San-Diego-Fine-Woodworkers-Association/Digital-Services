@@ -8,7 +8,7 @@ import {
   fetchAllPrograms,
   fetchAllRegistrations,
 } from "../proclass/client";
-import { getPrimaryAccountId } from "../proclass/transform";
+import { getPrimaryAccountId, programTitle } from "../proclass/transform";
 import {
   addTags,
   findContactByEmail,
@@ -93,7 +93,7 @@ export async function runGhlSync(
         .filter(
           (p) =>
             !isJunkProgram({
-              title: p.Title ?? "",
+              title: programTitle(p) ?? "",
               status: p.StatusDescription ?? "",
             }),
         )
@@ -139,9 +139,11 @@ export async function runGhlSync(
       const registrationInputs: ProClassRegistrationInput[] = accountRegistrations
         .map((r) => {
           const program = programsById.get(r.ProgramId);
-          return program?.Title
+          if (!program) return null;
+          const title = programTitle(program);
+          return title
             ? {
-                programTitle: program.Title,
+                programTitle: title,
                 programTypeDescription: program.ProgramType?.Description ?? "",
               }
             : null;

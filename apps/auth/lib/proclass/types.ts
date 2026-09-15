@@ -41,6 +41,7 @@ export type ProClassMembership = {
 export type ProClassProgram = {
   ProgramId: number;
   Title: string | null;
+  Description: string | null;
   ProgramType: { Description: string } | null;
   StatusDescription: string | null;
 };
