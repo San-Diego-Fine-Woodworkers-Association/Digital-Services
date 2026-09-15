@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AppLayout } from "@sdwa/components";
 
-import "@sdfwa/ui/globals.css";
+import "./globals.css";
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -28,7 +29,9 @@ export default function RootLayout({
       <body
         className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased`}
       >
-        <Suspense>{children}</Suspense>
+        <AppLayout theme="light">
+          <Suspense>{children}</Suspense>
+        </AppLayout>
       </body>
     </html>
   );
