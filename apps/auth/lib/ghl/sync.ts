@@ -48,7 +48,6 @@ function isRelevantProgramType(description: string): boolean {
   return isClass(description) || isShopSlot(description) || description === "Safety";
 }
 
-/** No prior `ok` run means this is the one-time full-history backfill. */
 async function determineMode(): Promise<GhlSyncMode> {
   const [priorOkRun] = await db
     .select({ id: ghlSyncRunsTable.id })
@@ -58,14 +57,6 @@ async function determineMode(): Promise<GhlSyncMode> {
   return priorOkRun ? "lookback" : "backfill";
 }
 
-/**
- * Pulls ProClass Programs + Registrations, joins against proclass_users for
- * tier/member-since, applies junk-data filtering, computes each member's tag
- * plan (lib/ghl/tags.ts), and pushes it to GHL — or, in dry-run mode,
- * accumulates the same plans into the run-log's `dryRunOutput` instead of
- * ever calling the GHL API. Mirrors proclass/sync.ts's try/finally-style
- * run-log bracketing.
- */
 export async function runGhlSync(
   { dryRun = true }: { dryRun?: boolean } = {},
 ): Promise<GhlSyncRunResult> {
@@ -148,7 +139,6 @@ export async function runGhlSync(
       const registrationInputs: ProClassRegistrationInput[] = accountRegistrations
         .map((r) => {
           const program = programsById.get(r.ProgramId);
-          // A titleless Program can't produce a meaningful tag either way.
           return program?.Title
             ? {
                 programTitle: program.Title,
@@ -161,9 +151,6 @@ export async function runGhlSync(
       const proclassUser = proclassUsersByMemberId.get(String(contact.ContactId));
       const active = proclassUser?.active ?? true;
 
-      // Resolving *which* tier tag to remove needs a live GHL read (see
-      // lib/ghl/types.ts's GhlMemberInput note) — impossible in dry-run,
-      // which must never call the GHL API at all.
       let lastKnownMembershipTier: string | null = null;
       let lastKnownMembershipTierFull: string | null = null;
       if (!active && !dryRun) {
@@ -195,8 +182,6 @@ export async function runGhlSync(
         continue;
       }
 
-      // Lapsed members get no other action on their contact — no upsert,
-      // no tag adds — only the tier-tag removal below.
       let contactId: string | null = null;
       if (active && (plan.tagsToAdd.length || plan.memberSinceField)) {
         const memberSinceFieldId = plan.memberSinceField

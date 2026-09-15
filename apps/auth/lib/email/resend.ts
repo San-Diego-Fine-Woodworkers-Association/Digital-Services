@@ -40,15 +40,10 @@ export async function sendMagicLink({
 const SYNC_ERROR_RECIPIENT = "digital-services@sdfwa.org";
 
 type SendSyncErrorEmailArgs = {
-  /** e.g. "ProClass -> GHL sync" */
   syncName: string;
   errorMessage: string;
 };
 
-/**
- * Sends a plain-text alert when a scheduled sync run fails. Same dev
- * fallback as sendMagicLink: no RESEND_API_KEY logs instead of sending.
- */
 export async function sendSyncErrorEmail({
   syncName,
   errorMessage,

@@ -17,9 +17,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Defaults to a dry run — the calling cron (SDF-60) must explicitly opt
-  // into a real run, since there is no way to safely rehearse against GHL
-  // otherwise (no sandbox exists).
   const dryRun = new URL(req.url).searchParams.get("dryRun") !== "false";
 
   const result = await runGhlSync({ dryRun });
