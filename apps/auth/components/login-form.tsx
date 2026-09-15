@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { Button, Card, CardContent, FieldGroup } from "@sdwa/components";
-import { Notification } from "@sdfwa/ui/components/notification";
+import { Button, Card, CardContent, FieldGroup, Notification } from "@sdwa/components";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -106,7 +105,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
 
               {error && (
                 <Notification
-                  level="error"
+                  variant="error"
                   title={error}
                   dismissible
                   onDismiss={() => setError(null)}
