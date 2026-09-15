@@ -1,9 +1,11 @@
+"use client";
+
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import memberCard from "@/public/assets/sample-member-card.jpeg";
-import { Button } from "@sdfwa/ui/components/button";
+import { Button } from "@sdwa/components";
 import { Card, CardContent } from "@sdfwa/ui/components/card";
 import {
   Collapsible,
@@ -12,6 +14,7 @@ import {
 } from "@sdfwa/ui/components/collapsible";
 
 export default function FaqPage() {
+  const router = useRouter();
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-6">
       <div className="w-full max-w-lg">
@@ -73,8 +76,8 @@ export default function FaqPage() {
             </section>
 
             <div className="flex justify-center">
-              <Button asChild size="lg" className="text">
-                <Link href="/login">Back to Sign In</Link>
+              <Button variant="primary" onPress={() => router.push("/login")}>
+                Back to Sign In
               </Button>
             </div>
           </CardContent>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { Button } from "@sdfwa/ui/components/button";
+import { Button } from "@sdwa/components";
 import { Card, CardContent } from "@sdfwa/ui/components/card";
 import { Field, FieldGroup, FieldLabel } from "@sdfwa/ui/components/field";
 import { Input } from "@sdfwa/ui/components/input";
@@ -155,9 +155,10 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                   <Field>
                     <Button
                       type="button"
+                      variant="primary"
                       className="w-full"
-                      onClick={handleGoogleClick}
-                      disabled={submitting}
+                      onPress={handleGoogleClick}
+                      isDisabled={submitting}
                     >
                       {submitting ? "Redirecting…" : "Continue with Google"}
                     </Button>
@@ -187,8 +188,9 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                   <Field>
                     <Button
                       type="submit"
+                      variant="primary"
                       className="w-full"
-                      disabled={submitting}
+                      isDisabled={submitting}
                     >
                       {submitting ? "Signing in…" : "Sign In"}
                     </Button>
