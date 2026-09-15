@@ -69,6 +69,8 @@ never be checked into git.
 | `PROCLASS_PASSWORD` (secret) | Prod ProClass API password |
 | `RESEND_API_KEY` (secret) | Production Resend API key (verified-domain key) |
 | `EMAIL_FROM` | `no-reply@auth.sdfwa.org` |
+| `GHL_PRIVATE_INTEGRATION_TOKEN` (secret) | GoHighLevel Private Integration token (`ProClass ETL`), scoped to the SDFWA location with Contacts + Custom Fields read/write — see SDF-55 |
+| `GHL_LOCATION_ID` | GoHighLevel location id (`bflvYkaj9OK3Wedu0GUG`, San Diego Fine Woodworkers Association) |
 
 `NODE_ENV` is set to `production` by the standalone Next runner; you don't
 need to set it explicitly.

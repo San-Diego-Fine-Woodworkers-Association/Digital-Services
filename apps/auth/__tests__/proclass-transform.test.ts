@@ -7,11 +7,13 @@ import {
   joinContactsAndMemberships,
   pickPhone,
   pickPrimaryAddress,
+  programTitle,
   projectMember,
 } from "@/lib/proclass/transform";
 import type {
   ProClassContact,
   ProClassMembership,
+  ProClassProgram,
 } from "@/lib/proclass/types";
 
 const baseContact: ProClassContact = {
@@ -245,5 +247,31 @@ describe("joinContactsAndMemberships", () => {
     expect(out.map((m) => m.memberId)).toEqual(["12345", "3"]);
     expect(out[0]?.membership).toBe("Gold");
     expect(out[1]?.membership).toBeNull(); // no memberships under AccountId 100
+  });
+});
+
+describe("programTitle", () => {
+  const baseProgram: ProClassProgram = {
+    ProgramId: 1,
+    Title: "Introduction to Woodworking A",
+    Description: "Intro Woodworking",
+    ProgramType: { Description: "Class" },
+    StatusDescription: "Completed",
+  };
+
+  test("prefers Title when present", () => {
+    expect(programTitle(baseProgram)).toBe("Introduction to Woodworking A");
+  });
+
+  test("falls back to Description when Title is null", () => {
+    expect(programTitle({ ...baseProgram, Title: null })).toBe(
+      "Intro Woodworking",
+    );
+  });
+
+  test("returns null when both Title and Description are null", () => {
+    expect(
+      programTitle({ ...baseProgram, Title: null, Description: null }),
+    ).toBeNull();
   });
 });

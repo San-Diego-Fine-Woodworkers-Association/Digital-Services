@@ -3,6 +3,7 @@ import {
   boolean,
   date,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -95,6 +96,21 @@ export const syncRunsTable = pgTable("sync_runs", {
   membersUpserted: integer("members_upserted").notNull().default(0),
   membersDeactivated: integer("members_deactivated").notNull().default(0),
   errorMessage: text("error_message"),
+});
+
+export const ghlSyncRunsTable = pgTable("ghl_sync_runs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  mode: text("mode").notNull(),
+  status: text("status").notNull(),
+  dryRun: boolean("dry_run").notNull().default(false),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  finishedAt: timestamp("finished_at"),
+  membersScanned: integer("members_scanned").notNull().default(0),
+  contactsUpserted: integer("contacts_upserted").notNull().default(0),
+  tagsAdded: integer("tags_added").notNull().default(0),
+  tagsRemoved: integer("tags_removed").notNull().default(0),
+  errorMessage: text("error_message"),
+  dryRunOutput: jsonb("dry_run_output"),
 });
 
 export const volunteersRelations = relations(volunteersTable, ({ one }) => ({

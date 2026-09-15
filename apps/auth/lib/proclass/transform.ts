@@ -2,11 +2,16 @@ import type {
   ProClassAddress,
   ProClassContact,
   ProClassMembership,
+  ProClassProgram,
   ProjectedMember,
 } from "./types";
 
 export function pickPhone(contact: ProClassContact): string | null {
   return contact.Mobile || contact.HomePhone || contact.WorkPhone || null;
+}
+
+export function programTitle(program: ProClassProgram): string | null {
+  return program.Title ?? program.Description;
 }
 
 export function pickPrimaryAddress(

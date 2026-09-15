@@ -28,12 +28,28 @@ export type ProClassContact = {
   LastName: string | null;
   Addresses: ProClassAddress[] | null;
   ContactAccounts?: ProClassContactAccount[] | null;
+  CreateDate?: string | null;
 };
 
 export type ProClassMembership = {
   AccountId: number;
   MembershipType: string | null;
   MembershipStatus: string | null;
+  CreateDate: string | null;
+};
+
+export type ProClassProgram = {
+  ProgramId: number;
+  Title: string | null;
+  Description: string | null;
+  ProgramType: { Description: string } | null;
+  StatusDescription: string | null;
+};
+
+export type ProClassRegistration = {
+  StudentId: number;
+  ProgramId: number;
+  AccountId: number;
   CreateDate: string | null;
 };
 

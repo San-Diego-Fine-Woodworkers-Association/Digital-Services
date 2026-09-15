@@ -16,6 +16,7 @@ export {
   trustedDevicesTable,
   magicLinkTokensTable,
   syncRunsTable,
+  ghlSyncRunsTable,
 } from "./db/schema";
 
 export { user, session, account, verification, jwks } from "./db/auth-schema";
