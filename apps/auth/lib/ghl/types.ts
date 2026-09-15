@@ -32,13 +32,16 @@ export type GhlMemberInput = {
   /** proclass_users.active for this member. */
   active: boolean;
   /**
-   * The tier tag to remove now that this member has lapsed, if any. Only
-   * meaningful when `active` is false. Resolving *which* tag this is is a
-   * sync.ts (I/O-layer) concern — see the note on `buildGhlTagPlan` — since
-   * `membershipTier` is typically already null by the time a member shows
-   * as inactive (the hourly ETL clears it once no Active membership remains).
+   * The normalized tier tag to remove now that this member has lapsed, if
+   * any. Only meaningful when `active` is false. Resolving *which* tag this
+   * is is a sync.ts (I/O-layer) concern — see the note on `buildGhlTagPlan`
+   * — since `membershipTier` is typically already null by the time a member
+   * shows as inactive (the hourly ETL clears it once no Active membership
+   * remains).
    */
   lastKnownMembershipTier: string | null;
+  /** Same idea as lastKnownMembershipTier, but for the raw "tier full" tag. */
+  lastKnownMembershipTierFull: string | null;
   /** proclass_users.memberSince (ISO YYYY-MM-DD), or null. */
   memberSince: string | null;
 };

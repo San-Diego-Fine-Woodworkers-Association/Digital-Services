@@ -19,6 +19,7 @@ import {
 import { isJunkContact, isJunkProgram } from "./filters";
 import {
   buildGhlTagPlan,
+  findMembershipTierFullTag,
   findMembershipTierTag,
   isClass,
   isShopSlot,
@@ -164,9 +165,13 @@ export async function runGhlSync(
       // lib/ghl/types.ts's GhlMemberInput note) — impossible in dry-run,
       // which must never call the GHL API at all.
       let lastKnownMembershipTier: string | null = null;
+      let lastKnownMembershipTierFull: string | null = null;
       if (!active && !dryRun) {
         const found = await findContactByEmail(contact.Email);
         lastKnownMembershipTier = found ? findMembershipTierTag(found.tags) : null;
+        lastKnownMembershipTierFull = found
+          ? findMembershipTierFullTag(found.tags)
+          : null;
       }
 
       const plan = buildGhlTagPlan({
@@ -174,6 +179,7 @@ export async function runGhlSync(
         membershipTier: proclassUser?.membership ?? null,
         active,
         lastKnownMembershipTier,
+        lastKnownMembershipTierFull,
         memberSince: proclassUser?.memberSince ?? null,
       });
 

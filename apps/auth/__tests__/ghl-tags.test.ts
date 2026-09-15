@@ -3,8 +3,10 @@ import { describe, expect, test } from "bun:test";
 import {
   buildGhlTagPlan,
   deriveActivityTags,
+  findMembershipTierFullTag,
   findMembershipTierTag,
   isHostSafetyRegistration,
+  membershipTierFullTag,
   membershipTierTag,
   shopSlotName,
 } from "@/lib/ghl/tags";
@@ -87,6 +89,35 @@ describe("findMembershipTierTag", () => {
   test("returns null for an empty tag list", () => {
     expect(findMembershipTierTag([])).toBeNull();
   });
+
+  test("does not match the 'tier full' tag", () => {
+    expect(
+      findMembershipTierTag(["membership tier full: shop - gold current"]),
+    ).toBeNull();
+  });
+});
+
+describe("membershipTierFullTag", () => {
+  test("lowercases the raw membership string into key: value format", () => {
+    expect(membershipTierFullTag("Shop - Gold Current")).toBe(
+      "membership tier full: shop - gold current",
+    );
+  });
+});
+
+describe("findMembershipTierFullTag", () => {
+  test("finds the raw value from an existing tier full tag", () => {
+    expect(
+      findMembershipTierFullTag([
+        "membership tier: gold",
+        "membership tier full: shop - gold current",
+      ]),
+    ).toBe("shop - gold current");
+  });
+
+  test("returns null when no tier full tag is present", () => {
+    expect(findMembershipTierFullTag(["membership tier: gold"])).toBeNull();
+  });
 });
 
 describe("deriveActivityTags", () => {
@@ -155,10 +186,11 @@ describe("buildGhlTagPlan", () => {
     membershipTier: null,
     active: true,
     lastKnownMembershipTier: null,
+    lastKnownMembershipTierFull: null,
     memberSince: "2020-01-01",
   };
 
-  test("active member with a tier gets the tier tag added alongside activity tags", () => {
+  test("active member with a tier gets both tier tags added alongside activity tags", () => {
     const plan = buildGhlTagPlan({
       ...base,
       registrations: [
@@ -168,34 +200,61 @@ describe("buildGhlTagPlan", () => {
     });
     expect(plan.tagsToAdd).toEqual([
       "class registered: beginner woodworking",
-      "membership tier: shop - gold current",
+      "membership tier full: shop - gold current",
+      "membership tier: gold",
     ]);
     expect(plan.tagsToRemove).toEqual([]);
     expect(plan.memberSinceField).toBe("2020-01-01");
   });
 
-  test("active member with no tier gets no tier tag", () => {
+  test("normalizes the raw ProClass tier string the same way session claims do (drops status/price noise)", () => {
+    const plan = buildGhlTagPlan({
+      ...base,
+      membershipTier: "Shop - Silver Grandfathered",
+    });
+    expect(plan.tagsToAdd).toEqual([
+      "membership tier full: shop - silver grandfathered",
+      "membership tier: silver",
+    ]);
+  });
+
+  test("active member with no tier gets no tier tags", () => {
     const plan = buildGhlTagPlan({ ...base, membershipTier: null });
     expect(plan.tagsToAdd).toEqual([]);
   });
 
-  test("lapsed member with a last-known tier gets that tier tag removed, not added", () => {
+  test("active member with an unmapped tier string gets the full tag but no normalized tag (drift, not a fabricated one)", () => {
+    const plan = buildGhlTagPlan({
+      ...base,
+      membershipTier: "Some New Tier Nobody Has Mapped Yet",
+    });
+    expect(plan.tagsToAdd).toEqual([
+      "membership tier full: some new tier nobody has mapped yet",
+    ]);
+  });
+
+  test("lapsed member with last-known tiers gets both tags removed, not added", () => {
     const plan = buildGhlTagPlan({
       ...base,
       active: false,
       membershipTier: null,
-      lastKnownMembershipTier: "Bronze",
+      lastKnownMembershipTier: "bronze",
+      lastKnownMembershipTierFull: "shop - bronze current",
     });
     expect(plan.tagsToAdd).toEqual([]);
-    expect(plan.tagsToRemove).toEqual(["membership tier: bronze"]);
+    expect(plan.tagsToRemove).toEqual([
+      "membership tier: bronze",
+      "membership tier full: shop - bronze current",
+    ]);
   });
 
-  test("lapsed member with no last-known tier removes nothing", () => {
+  test("lapsed member with no last-known tiers removes nothing", () => {
     const plan = buildGhlTagPlan({
       ...base,
       active: false,
       membershipTier: null,
       lastKnownMembershipTier: null,
+      lastKnownMembershipTierFull: null,
     });
     expect(plan.tagsToRemove).toEqual([]);
   });

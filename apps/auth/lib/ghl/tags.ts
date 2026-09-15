@@ -1,3 +1,4 @@
+import { deriveTier } from "../auth/entitlement";
 import type {
   GhlMemberInput,
   GhlTagPlan,
@@ -6,6 +7,7 @@ import type {
 
 const HOST_PROGRAM_TITLE = "host";
 const MEMBERSHIP_TIER_TAG_PREFIX = "membership tier: ";
+const MEMBERSHIP_TIER_FULL_TAG_PREFIX = "membership tier full: ";
 
 /**
  * Per apps/auth/CONTEXT.md: bare "Shop Slot" is the main shop floor;
@@ -47,8 +49,28 @@ export function membershipTierTag(tier: string): string {
  * shows as inactive.
  */
 export function findMembershipTierTag(tags: string[]): string | null {
-  const match = tags.find((t) => t.startsWith(MEMBERSHIP_TIER_TAG_PREFIX));
+  const match = tags.find(
+    (t) =>
+      t.startsWith(MEMBERSHIP_TIER_TAG_PREFIX) &&
+      !t.startsWith(MEMBERSHIP_TIER_FULL_TAG_PREFIX),
+  );
   return match ? match.slice(MEMBERSHIP_TIER_TAG_PREFIX.length) : null;
+}
+
+/**
+ * The raw, undropped ProClass MembershipType string (e.g.
+ * "shop - silver grandfathered") — kept as a separate tag alongside the
+ * normalized `membership tier: <tier>` one, for staff who need the
+ * status/price detail `deriveTier` deliberately discards.
+ */
+export function membershipTierFullTag(rawMembership: string): string {
+  return `${MEMBERSHIP_TIER_FULL_TAG_PREFIX}${rawMembership.toLowerCase()}`;
+}
+
+/** Same idea as findMembershipTierTag, for the "tier full" tag. */
+export function findMembershipTierFullTag(tags: string[]): string | null {
+  const match = tags.find((t) => t.startsWith(MEMBERSHIP_TIER_FULL_TAG_PREFIX));
+  return match ? match.slice(MEMBERSHIP_TIER_FULL_TAG_PREFIX.length) : null;
 }
 
 /**
@@ -81,10 +103,24 @@ export function buildGhlTagPlan(input: GhlMemberInput): GhlTagPlan {
   const tagsToAdd = deriveActivityTags(input.registrations);
   const tagsToRemove: string[] = [];
 
+  // Normalize the raw ProClass MembershipType (e.g. "Shop - Silver Current",
+  // "Shop - Gold Grandfathered") the same way lib/auth/entitlement.ts does
+  // for session claims, so GHL gets one clean "silver"/"gold"/etc. tag
+  // instead of a distinct tag per raw variant. The raw string is kept too,
+  // as a separate "tier full" tag, for the status/price detail that drops.
   if (input.active && input.membershipTier) {
-    tagsToAdd.push(membershipTierTag(input.membershipTier));
-  } else if (!input.active && input.lastKnownMembershipTier) {
-    tagsToRemove.push(membershipTierTag(input.lastKnownMembershipTier));
+    const tier = deriveTier(input.membershipTier);
+    if (tier) tagsToAdd.push(membershipTierTag(tier));
+    tagsToAdd.push(membershipTierFullTag(input.membershipTier));
+  } else if (!input.active) {
+    if (input.lastKnownMembershipTier) {
+      tagsToRemove.push(membershipTierTag(input.lastKnownMembershipTier));
+    }
+    if (input.lastKnownMembershipTierFull) {
+      tagsToRemove.push(
+        membershipTierFullTag(input.lastKnownMembershipTierFull),
+      );
+    }
   }
 
   return {
