@@ -2,8 +2,7 @@ import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 
 import memberCard from "@/public/assets/sample-member-card.jpeg";
-import { Link } from "@sdwa/components";
-import { Card, CardContent } from "@sdfwa/ui/components/card";
+import { Card, CardContent, Link } from "@sdwa/components";
 import {
   Collapsible,
   CollapsibleContent,
