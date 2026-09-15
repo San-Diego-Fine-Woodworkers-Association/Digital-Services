@@ -11,7 +11,7 @@ const nextConfig = {
   turbopack: {
     // Turbopack refuses to resolve files outside its inferred project root
     // (see vercel/next.js#91896). Normally that's just this Digital-Services
-    // monorepo. When SDWA_LOCAL_LINK=1 (see scripts/link-design-system.sh),
+    // monorepo. When SDWA_LOCAL_LINK=1 (see scripts/link-design-system.js),
     // @sdwa/components and @sdwa/tokens instead resolve through `bun link`'s
     // global store (~/.bun/install/global) to the sibling design-system
     // checkout, so the root needs to widen to cover that too.

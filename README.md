@@ -107,15 +107,22 @@ git clone git@github.com:San-Diego-Fine-Woodworkers-Association/Design-System.gi
 
 bun run link:design-system        # links every app that depends on @sdwa/*
 bun run link:design-system auth   # or just one app
-
-cd apps/auth
-SDWA_LOCAL_LINK=1 bun run dev     # or build
 ```
 
+The command prints exactly what to run per linked app, e.g.:
+
+```bash
+cd apps/auth && NODE_PATH=<...> SDWA_LOCAL_LINK=1 bun run dev   # or build
+```
+
+Copy that line rather than typing your own — the `NODE_PATH` value is
+specific to what's currently installed and changes when dependencies update.
 `SDWA_LOCAL_LINK=1` matters: Turbopack can't currently follow a package
 linked from outside this repo (a
 [known upstream limitation](https://github.com/vercel/next.js/issues/91896)),
-so linked apps fall back to webpack for as long as they're linked. There's no
+so linked apps fall back to webpack for as long as they're linked; `NODE_PATH`
+separately works around `@sdwa/tokens`' `@import "tailwindcss"` not resolving
+through the link (also link-only — real installs don't need it). There's no
 watch mode wired up — after each design-system source change, rerun
 `bun run build` in `design-system` (or the whole `link:design-system` command
 again) to pick it up.

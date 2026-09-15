@@ -89,10 +89,26 @@ function main() {
   console.log("\nInstalling...");
   run("bun", ["install"], REPO_ROOT);
 
+  console.log(`\nLinked. Run each app's dev/build with SDWA_LOCAL_LINK=1 set, e.g.:\n`);
+  for (const app of apps) {
+    const appDir = path.join(APPS_DIR, app);
+    // @sdwa/tokens' theme.css does `@import "tailwindcss"`, resolved relative
+    // to theme.css's real (symlinked) location in the design-system checkout,
+    // which has no tailwindcss of its own — only this app does. NODE_PATH
+    // makes that resolve too. Only needed while linked: a real npm-installed
+    // @sdwa/tokens lives inside this app's own node_modules and doesn't need it.
+    let nodePathHint = "";
+    const bunStore = path.join(REPO_ROOT, "node_modules", ".bun");
+    const tailwindDir = fs.existsSync(bunStore)
+      ? fs.readdirSync(bunStore).find((name) => name.startsWith("tailwindcss@"))
+      : undefined;
+    if (tailwindDir) {
+      nodePathHint = `NODE_PATH=${path.join(bunStore, tailwindDir, "node_modules")} `;
+    }
+    console.log(`  cd apps/${app} && ${nodePathHint}SDWA_LOCAL_LINK=1 bun run dev`);
+  }
   console.log(
-    `\nLinked. In a linked app, run its dev/build scripts with SDWA_LOCAL_LINK=1, e.g.:\n` +
-      `  SDWA_LOCAL_LINK=1 bun run dev\n` +
-      `Rebuild design-system after each source change (bun run build in design-system) to` +
+    `\nRebuild design-system after each source change (bun run build in design-system) to` +
       ` pick up the change — there's no watch mode wired up yet.\n` +
       `Run scripts/unlink-design-system.js when done.`,
   );
