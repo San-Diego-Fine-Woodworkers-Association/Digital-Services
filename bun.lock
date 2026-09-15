@@ -19,7 +19,6 @@
       "dependencies": {
         "@react-email/components": "^0.0.31",
         "@react-email/render": "^1.0.3",
-        "@sdfwa/ui": "workspace:*",
         "@sdwa/components": "^0.1.1",
         "@sdwa/tokens": "^0.1.1",
         "better-auth": "^1.4.18",
