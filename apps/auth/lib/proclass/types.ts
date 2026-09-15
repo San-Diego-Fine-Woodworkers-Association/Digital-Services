@@ -47,7 +47,12 @@ export type ProClassMembership = {
  */
 export type ProClassProgram = {
   ProgramId: number;
-  Title: string;
+  /**
+   * Confirmed nullable against live data — some real ProgramList rows have
+   * no Title (SDF-59 phase-2 smoke test, 2026-09-15). Callers must not
+   * assume a string.
+   */
+  Title: string | null;
   ProgramType: { Description: string } | null;
   StatusDescription: string | null;
 };

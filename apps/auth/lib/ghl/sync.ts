@@ -101,7 +101,7 @@ export async function runGhlSync(
         .filter(
           (p) =>
             !isJunkProgram({
-              title: p.Title,
+              title: p.Title ?? "",
               status: p.StatusDescription ?? "",
             }),
         )
@@ -147,7 +147,8 @@ export async function runGhlSync(
       const registrationInputs: ProClassRegistrationInput[] = accountRegistrations
         .map((r) => {
           const program = programsById.get(r.ProgramId);
-          return program
+          // A titleless Program can't produce a meaningful tag either way.
+          return program?.Title
             ? {
                 programTitle: program.Title,
                 programTypeDescription: program.ProgramType?.Description ?? "",
@@ -180,6 +181,11 @@ export async function runGhlSync(
 
       if (dryRun) {
         dryRunOutput.push({ email: contact.Email, ...plan });
+        if (active && (plan.tagsToAdd.length || plan.memberSinceField)) {
+          contactsUpserted++;
+        }
+        tagsAdded += plan.tagsToAdd.length;
+        tagsRemoved += plan.tagsToRemove.length;
         continue;
       }
 
