@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   buildGhlTagPlan,
   deriveActivityTags,
+  findMembershipTierTag,
   isHostSafetyRegistration,
   membershipTierTag,
   shopSlotName,
@@ -69,6 +70,22 @@ describe("membershipTierTag", () => {
     expect(membershipTierTag("Shop - Gold Current")).toBe(
       "membership tier: shop - gold current",
     );
+  });
+});
+
+describe("findMembershipTierTag", () => {
+  test("finds the tier value from an existing membership tier tag", () => {
+    expect(
+      findMembershipTierTag(["class registered: foo", "membership tier: gold"]),
+    ).toBe("gold");
+  });
+
+  test("returns null when no membership tier tag is present", () => {
+    expect(findMembershipTierTag(["class registered: foo"])).toBeNull();
+  });
+
+  test("returns null for an empty tag list", () => {
+    expect(findMembershipTierTag([])).toBeNull();
   });
 });
 

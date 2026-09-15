@@ -28,12 +28,39 @@ export type ProClassContact = {
   LastName: string | null;
   Addresses: ProClassAddress[] | null;
   ContactAccounts?: ProClassContactAccount[] | null;
+  /** Used only by the GHL sync's junk-contact filter (lib/ghl/filters.ts). */
+  CreateDate?: string | null;
 };
 
 export type ProClassMembership = {
   AccountId: number;
   MembershipType: string | null;
   MembershipStatus: string | null;
+  CreateDate: string | null;
+};
+
+/**
+ * Field names per SDF-57's live-confirmed research (Title/StatusDescription
+ * mirror the FAKE/Canceled junk-program convention noted in CONTEXT.md) —
+ * not yet smoke-tested against a full raw ProgramList response. Verify
+ * `Title` before the GHL backfill ever runs for real.
+ */
+export type ProClassProgram = {
+  ProgramId: number;
+  Title: string;
+  ProgramType: { Description: string } | null;
+  StatusDescription: string | null;
+};
+
+/**
+ * Field names per SDF-57's live-confirmed research (flat StudentId/ProgramId/
+ * AccountId/CreateDate on `RegistrationList`, unlike the nested `Registrations`
+ * controller).
+ */
+export type ProClassRegistration = {
+  StudentId: number;
+  ProgramId: number;
+  AccountId: number;
   CreateDate: string | null;
 };
 

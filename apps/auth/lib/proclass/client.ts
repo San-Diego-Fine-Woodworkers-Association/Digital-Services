@@ -1,4 +1,9 @@
-import type { ProClassContact, ProClassMembership } from "./types";
+import type {
+  ProClassContact,
+  ProClassMembership,
+  ProClassProgram,
+  ProClassRegistration,
+} from "./types";
 
 const BASE_URL = "https://api130.imperisoft.com";
 
@@ -39,4 +44,23 @@ export function fetchAllContacts(): Promise<ProClassContact[]> {
  */
 export function fetchAllMemberships(): Promise<ProClassMembership[]> {
   return get<ProClassMembership[]>("/api/Memberships");
+}
+
+/**
+ * Returns every Program in ProClass, across all types, in one call
+ * (~8,836 rows, ~12.5s per SDF-57's research). Caller filters by
+ * ProgramType.Description.
+ */
+export function fetchAllPrograms(): Promise<ProClassProgram[]> {
+  return get<ProClassProgram[]>("/api/ProgramList");
+}
+
+/**
+ * Returns every registration in ProClass's full history (2017-present), in
+ * one call (~14,264 rows, ~1.5s per SDF-57's research). No server-side date
+ * filter is applied here — the lookback-vs-backfill window is a local,
+ * in-memory filter the caller applies afterward.
+ */
+export function fetchAllRegistrations(): Promise<ProClassRegistration[]> {
+  return get<ProClassRegistration[]>("/api/RegistrationList");
 }

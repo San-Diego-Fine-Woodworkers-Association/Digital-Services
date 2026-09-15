@@ -3,6 +3,7 @@ import {
   boolean,
   date,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -95,6 +96,32 @@ export const syncRunsTable = pgTable("sync_runs", {
   membersUpserted: integer("members_upserted").notNull().default(0),
   membersDeactivated: integer("members_deactivated").notNull().default(0),
   errorMessage: text("error_message"),
+});
+
+/**
+ * Observability for the daily ProClass -> GHL sync (SDF-59). A separate
+ * table from `sync_runs` rather than a `type` column on it: the two ETLs
+ * track different counts (tags added/removed vs. members upserted/
+ * deactivated) and this sync additionally needs `mode` and `dryRun`.
+ */
+export const ghlSyncRunsTable = pgTable("ghl_sync_runs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  mode: text("mode").notNull(), // 'backfill' | 'lookback'
+  status: text("status").notNull(), // 'running' | 'ok' | 'error'
+  dryRun: boolean("dry_run").notNull().default(false),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  finishedAt: timestamp("finished_at"),
+  membersScanned: integer("members_scanned").notNull().default(0),
+  contactsUpserted: integer("contacts_upserted").notNull().default(0),
+  tagsAdded: integer("tags_added").notNull().default(0),
+  tagsRemoved: integer("tags_removed").notNull().default(0),
+  errorMessage: text("error_message"),
+  /**
+   * Dry-run only: the accumulated per-member {email, tagsToAdd, tagsToRemove,
+   * memberSinceField} payloads that would have been sent to GHL, so a dry
+   * run's output is structurally comparable to a real run's counts.
+   */
+  dryRunOutput: jsonb("dry_run_output"),
 });
 
 export const volunteersRelations = relations(volunteersTable, ({ one }) => ({

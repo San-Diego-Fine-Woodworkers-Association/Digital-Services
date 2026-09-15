@@ -5,6 +5,7 @@ import type {
 } from "./types";
 
 const HOST_PROGRAM_TITLE = "host";
+const MEMBERSHIP_TIER_TAG_PREFIX = "membership tier: ";
 
 /**
  * Per apps/auth/CONTEXT.md: bare "Shop Slot" is the main shop floor;
@@ -35,7 +36,19 @@ export function isHostSafetyRegistration(
 
 /** All lowercase, `key: value` with a single space, per CONTEXT.md's GHL Tag Format. */
 export function membershipTierTag(tier: string): string {
-  return `membership tier: ${tier.toLowerCase()}`;
+  return `${MEMBERSHIP_TIER_TAG_PREFIX}${tier.toLowerCase()}`;
+}
+
+/**
+ * Given a contact's current GHL tags, finds the tier value carried by any
+ * existing membership-tier tag. Used by sync.ts to resolve
+ * GhlMemberInput.lastKnownMembershipTier from a live read, since
+ * proclass_users.membership is typically already null by the time a member
+ * shows as inactive.
+ */
+export function findMembershipTierTag(tags: string[]): string | null {
+  const match = tags.find((t) => t.startsWith(MEMBERSHIP_TIER_TAG_PREFIX));
+  return match ? match.slice(MEMBERSHIP_TIER_TAG_PREFIX.length) : null;
 }
 
 /**
