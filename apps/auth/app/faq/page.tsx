@@ -1,13 +1,14 @@
-import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 
 import memberCard from "@/public/assets/sample-member-card.jpeg";
-import { Card, CardContent, Link } from "@sdwa/components";
 import {
+  Card,
+  CardContent,
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@sdfwa/ui/components/collapsible";
+  Link,
+} from "@sdwa/components";
 
 export default function FaqPage() {
   return (
@@ -38,10 +39,7 @@ export default function FaqPage() {
                 .
               </p>
               <Collapsible className="mt-1">
-                <CollapsibleTrigger className="group flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline">
-                  <ChevronRight className="size-4 transition-transform group-data-[state=open]:rotate-90" />
-                  Example Member Card
-                </CollapsibleTrigger>
+                <CollapsibleTrigger>Example Member Card</CollapsibleTrigger>
                 <CollapsibleContent>
                   <Image
                     src={memberCard}
