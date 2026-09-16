@@ -69,7 +69,7 @@ never be checked into git.
 | `PROCLASS_PASSWORD` (secret) | Prod ProClass API password |
 | `RESEND_API_KEY` (secret) | Production Resend API key (verified-domain key) |
 | `EMAIL_FROM` | `no-reply@auth.sdfwa.org` |
-| `GHL_PRIVATE_INTEGRATION_TOKEN` (secret) | GoHighLevel Private Integration token (`ProClass ETL`), scoped to the SDFWA location with Contacts + Custom Fields read/write — see SDF-55 |
+| `GHL_PRIVATE_INTEGRATION_TOKEN` (secret) | GoHighLevel Private Integration token (`ProClass ETL`), scoped to the SDFWA location with Contacts + Custom Fields read/write |
 | `GHL_LOCATION_ID` | GoHighLevel location id (`bflvYkaj9OK3Wedu0GUG`, San Diego Fine Woodworkers Association) |
 
 `NODE_ENV` is set to `production` by the standalone Next runner; you don't
@@ -105,9 +105,9 @@ The redirect URI you need on the prod client is
 Verify by signing in as a member from a fresh browser. The magic-link email
 should arrive within seconds.
 
-## 7. Scheduled tasks (ProClass ETL)
+## 7. Scheduled tasks
 
-In Dokploy, on the auth application, add a scheduled task:
+In Dokploy, on the auth application, add these scheduled tasks:
 
 | Field | Value |
 | --- | --- |
@@ -115,6 +115,19 @@ In Dokploy, on the auth application, add a scheduled task:
 | Command | `curl -fsSL -X POST -H "Authorization: Bearer ${CRON_SECRET}" https://auth.sdfwa.org/api/cron/proclass-sync` |
 
 After one hour, check `sync_runs` in the prod DB for `status='ok'`.
+
+| Field | Value |
+| --- | --- |
+| Schedule | `0 3 * * *` (daily) |
+| Command | `curl -fsSL -X POST -H "Authorization: Bearer ${CRON_SECRET}" "https://auth.sdfwa.org/api/cron/ghl-sync?mode=lookback&dryRun=false"` |
+
+See [ghl-sync.md](ghl-sync.md) for the initial backfill run and the
+`mode`/`dryRun` params.
+
+| Field | Value |
+| --- | --- |
+| Schedule | `0 4 * * 0` (weekly) |
+| Command | `curl -fsSL -X POST -H "Authorization: Bearer ${CRON_SECRET}" https://auth.sdfwa.org/api/cron/prune-sync-runs` |
 
 ## 8. First deploy
 
