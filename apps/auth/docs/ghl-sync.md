@@ -32,9 +32,16 @@ On each run:
    incremental add-tag for anyone with something new to say, plus an
    incremental remove-tag for anyone whose ProClass membership has lapsed
    (`proclass_users.membership` is `null`) and still carries a stale tier
-   tag in GHL.
-6. Writes a `ghl_sync_runs` row with final counts and `status='ok'` (or
-   `'error'`, plus an email to digital-services@sdfwa.org via Resend).
+   tag in GHL. Each GHL call retries transient failures (429, 5xx, or a
+   timeout) up to 3 times with backoff before giving up.
+6. Each member is processed independently — one member's failure doesn't
+   stop the run. It's logged, counted in `member_errors`, and the sync
+   moves on to the next member.
+7. Writes a `ghl_sync_runs` row with final counts and `status='ok'` (or
+   `'error'` if something outside the per-member loop failed). An email to
+   digital-services@sdfwa.org goes out via Resend on `status='error'`, and
+   also whenever `member_errors > 0` even though the run otherwise
+   completed.
 
 ## Running it
 
@@ -80,11 +87,17 @@ Every run leaves a `ghl_sync_runs` row:
 
 ```sql
 SELECT started_at, mode, dry_run, status, members_scanned,
-       contacts_upserted, tags_added, tags_removed, error_message
+       contacts_upserted, tags_added, tags_removed, member_errors,
+       error_message
 FROM ghl_sync_runs
 ORDER BY started_at DESC
 LIMIT 10;
 ```
+
+`error_message` is only set for a whole-run failure (something outside the
+per-member loop). `member_errors` counts individual members that failed —
+each one's specific error is in the server logs
+(`ghl-sync: failed for <email>: <message>`), not in this table.
 
 For a dry run, the full per-member plan is in `dry_run_output`:
 
@@ -123,7 +136,8 @@ exact rules. In addition to the tags documented there:
 | 400, `mode must be one of: backfill, lookback` | Typo'd `?mode=` value. |
 | A real member missing an expected tag | Check `isJunkContact`/`isJunkProgram` in `lib/ghl/filters.ts` — a false positive there silently drops the member from the whole sync. |
 | `tagsRemoved` is 0 in a dry run | Expected — resolving which tag to remove requires reading the contact's current GHL tags, which dry-run mode never does (it makes no GHL calls at all). Only a real run can remove tags. |
-| Run takes far longer than a dry run | A real run makes live GHL HTTP calls sequentially, one member at a time. Dry runs make none. |
+| Run takes far longer than a dry run | A real run makes live GHL HTTP calls sequentially, one member at a time, with retries on transient failures. Dry runs make none. |
+| `status='ok'` but `member_errors > 0` | Some members failed after retries were exhausted. The run still completed for everyone else — check server logs for `ghl-sync: failed for <email>` to see which members and why, then re-run the same `mode`/`dryRun` to retry just the failures (writes are idempotent). |
 
 ## GHL response shapes
 

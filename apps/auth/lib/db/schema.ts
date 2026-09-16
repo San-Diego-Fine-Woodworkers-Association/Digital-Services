@@ -109,6 +109,7 @@ export const ghlSyncRunsTable = pgTable("ghl_sync_runs", {
   contactsUpserted: integer("contacts_upserted").notNull().default(0),
   tagsAdded: integer("tags_added").notNull().default(0),
   tagsRemoved: integer("tags_removed").notNull().default(0),
+  memberErrors: integer("member_errors").notNull().default(0),
   errorMessage: text("error_message"),
   dryRunOutput: jsonb("dry_run_output"),
 });
