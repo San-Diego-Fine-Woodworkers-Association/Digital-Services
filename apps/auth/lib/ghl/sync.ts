@@ -48,30 +48,9 @@ function isRelevantProgramType(description: string): boolean {
   return isClass(description) || isShopSlot(description) || description === "Safety";
 }
 
-export type PriorSyncRun = { status: string; dryRun: boolean };
-
-export function determineSyncMode(priorRuns: PriorSyncRun[]): GhlSyncMode {
-  const hasRealOkRun = priorRuns.some(
-    (run) => run.status === "ok" && !run.dryRun,
-  );
-  return hasRealOkRun ? "lookback" : "backfill";
-}
-
-async function determineMode(): Promise<GhlSyncMode> {
-  const priorRuns = await db
-    .select({
-      status: ghlSyncRunsTable.status,
-      dryRun: ghlSyncRunsTable.dryRun,
-    })
-    .from(ghlSyncRunsTable);
-  return determineSyncMode(priorRuns);
-}
-
 export async function runGhlSync(
-  { dryRun = true }: { dryRun?: boolean } = {},
+  { dryRun = true, mode = "lookback" }: { dryRun?: boolean; mode?: GhlSyncMode } = {},
 ): Promise<GhlSyncRunResult> {
-  const mode = await determineMode();
-
   const [run] = await db
     .insert(ghlSyncRunsTable)
     .values({ mode, status: "running", dryRun })
