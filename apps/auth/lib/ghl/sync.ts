@@ -135,7 +135,6 @@ export async function runGhlSync(
           firstName: contact.FirstName,
           lastName: contact.LastName,
           email: contact.Email,
-          createDate: contact.CreateDate ?? null,
         })
       ) {
         continue;

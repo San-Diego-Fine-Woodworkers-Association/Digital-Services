@@ -7,7 +7,6 @@ const baseContact: JunkCheckContact = {
   firstName: "Ada",
   lastName: "Lovelace",
   email: "ada@example.com",
-  createDate: "2020-01-01",
 };
 
 describe("isJunkContact", () => {
@@ -46,10 +45,6 @@ describe("isJunkContact", () => {
     expect(isJunkContact({ ...baseContact, lastName: "Testcustomer42" })).toBe(
       true,
     );
-  });
-
-  test("null CreateDate is filtered", () => {
-    expect(isJunkContact({ ...baseContact, createDate: null })).toBe(true);
   });
 
   test("null firstName/lastName does not throw and is not junk on its own", () => {
