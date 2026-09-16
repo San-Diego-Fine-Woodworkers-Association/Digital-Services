@@ -39,6 +39,7 @@ export type GhlSyncRunResult = {
   contactsUpserted: number;
   tagsAdded: number;
   tagsRemoved: number;
+  memberErrors: number;
   errorMessage: string | null;
 };
 
@@ -61,6 +62,7 @@ export async function runGhlSync(
   let contactsUpserted = 0;
   let tagsAdded = 0;
   let tagsRemoved = 0;
+  let memberErrors = 0;
   const dryRunOutput: DryRunEntry[] = [];
 
   try {
@@ -121,85 +123,91 @@ export async function runGhlSync(
 
       membersScanned++;
 
-      const accountId = getPrimaryAccountId(contact);
-      const accountRegistrations =
-        accountId !== null ? (registrationsByAccountId.get(accountId) ?? []) : [];
-      const registrationInputs: ProClassRegistrationInput[] = accountRegistrations
-        .map((r) => {
-          const program = programsById.get(r.ProgramId);
-          if (!program) return null;
-          const title = programTitle(program);
-          return title
-            ? {
-                programTitle: title,
-                programTypeDescription: program.ProgramType?.Description ?? "",
-              }
-            : null;
-        })
-        .filter((r): r is ProClassRegistrationInput => r !== null);
+      try {
+        const accountId = getPrimaryAccountId(contact);
+        const accountRegistrations =
+          accountId !== null ? (registrationsByAccountId.get(accountId) ?? []) : [];
+        const registrationInputs: ProClassRegistrationInput[] = accountRegistrations
+          .map((r) => {
+            const program = programsById.get(r.ProgramId);
+            if (!program) return null;
+            const title = programTitle(program);
+            return title
+              ? {
+                  programTitle: title,
+                  programTypeDescription: program.ProgramType?.Description ?? "",
+                }
+              : null;
+          })
+          .filter((r): r is ProClassRegistrationInput => r !== null);
 
-      const proclassUser = proclassUsersByMemberId.get(String(contact.ContactId));
-      const membershipTier = proclassUser?.membership ?? null;
+        const proclassUser = proclassUsersByMemberId.get(String(contact.ContactId));
+        const membershipTier = proclassUser?.membership ?? null;
 
-      let lastKnownMembershipTier: string | null = null;
-      let lastKnownMembershipTierFull: string | null = null;
-      if (!membershipTier && !dryRun) {
-        const found = await findContactByEmail(contact.Email);
-        lastKnownMembershipTier = found ? findMembershipTierTag(found.tags) : null;
-        lastKnownMembershipTierFull = found
-          ? findMembershipTierFullTag(found.tags)
-          : null;
-      }
-
-      const plan = buildGhlTagPlan({
-        registrations: registrationInputs,
-        membershipTier,
-        lastKnownMembershipTier,
-        lastKnownMembershipTierFull,
-        memberSince: proclassUser?.memberSince ?? null,
-      });
-
-      if (!plan.tagsToAdd.length && !plan.tagsToRemove.length) continue;
-
-      if (dryRun) {
-        dryRunOutput.push({ email: contact.Email, ...plan });
-        if (plan.tagsToAdd.length || plan.memberSinceField) {
-          contactsUpserted++;
-        }
-        tagsAdded += plan.tagsToAdd.length;
-        tagsRemoved += plan.tagsToRemove.length;
-        continue;
-      }
-
-      let contactId: string | null = null;
-      if (plan.tagsToAdd.length || plan.memberSinceField) {
-        const memberSinceFieldId = plan.memberSinceField
-          ? await getOrCreateMemberSinceFieldId()
-          : null;
-        const upserted = await upsertContactByEmail({
-          email: contact.Email,
-          firstName: contact.FirstName,
-          lastName: contact.LastName,
-          memberSinceFieldId,
-          memberSinceValue: plan.memberSinceField,
-        });
-        contactId = upserted.contactId;
-        contactsUpserted++;
-        if (plan.tagsToAdd.length) {
-          await addTags(contactId, plan.tagsToAdd);
-          tagsAdded += plan.tagsToAdd.length;
-        }
-      }
-
-      if (plan.tagsToRemove.length) {
-        if (!contactId) {
+        let lastKnownMembershipTier: string | null = null;
+        let lastKnownMembershipTierFull: string | null = null;
+        if (!membershipTier && !dryRun) {
           const found = await findContactByEmail(contact.Email);
-          contactId = found?.id ?? null;
+          lastKnownMembershipTier = found ? findMembershipTierTag(found.tags) : null;
+          lastKnownMembershipTierFull = found
+            ? findMembershipTierFullTag(found.tags)
+            : null;
         }
-        if (contactId) {
-          await removeTags(contactId, plan.tagsToRemove);
+
+        const plan = buildGhlTagPlan({
+          registrations: registrationInputs,
+          membershipTier,
+          lastKnownMembershipTier,
+          lastKnownMembershipTierFull,
+          memberSince: proclassUser?.memberSince ?? null,
+        });
+
+        if (!plan.tagsToAdd.length && !plan.tagsToRemove.length) continue;
+
+        if (dryRun) {
+          dryRunOutput.push({ email: contact.Email, ...plan });
+          if (plan.tagsToAdd.length || plan.memberSinceField) {
+            contactsUpserted++;
+          }
+          tagsAdded += plan.tagsToAdd.length;
           tagsRemoved += plan.tagsToRemove.length;
+          continue;
         }
+
+        let contactId: string | null = null;
+        if (plan.tagsToAdd.length || plan.memberSinceField) {
+          const memberSinceFieldId = plan.memberSinceField
+            ? await getOrCreateMemberSinceFieldId()
+            : null;
+          const upserted = await upsertContactByEmail({
+            email: contact.Email,
+            firstName: contact.FirstName,
+            lastName: contact.LastName,
+            memberSinceFieldId,
+            memberSinceValue: plan.memberSinceField,
+          });
+          contactId = upserted.contactId;
+          contactsUpserted++;
+          if (plan.tagsToAdd.length) {
+            await addTags(contactId, plan.tagsToAdd);
+            tagsAdded += plan.tagsToAdd.length;
+          }
+        }
+
+        if (plan.tagsToRemove.length) {
+          if (!contactId) {
+            const found = await findContactByEmail(contact.Email);
+            contactId = found?.id ?? null;
+          }
+          if (contactId) {
+            await removeTags(contactId, plan.tagsToRemove);
+            tagsRemoved += plan.tagsToRemove.length;
+          }
+        }
+      } catch (err) {
+        memberErrors++;
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`ghl-sync: failed for ${contact.Email}: ${message}`);
       }
     }
 
@@ -212,10 +220,18 @@ export async function runGhlSync(
         contactsUpserted,
         tagsAdded,
         tagsRemoved,
+        memberErrors,
         dryRunOutput: dryRun ? dryRunOutput : null,
       })
       .where(eq(ghlSyncRunsTable.id, runId))
       .returning();
+
+    if (memberErrors > 0) {
+      await sendSyncErrorEmail({
+        syncName: "ProClass -> GHL sync",
+        errorMessage: `Run completed, but ${memberErrors} member(s) failed. See ghl_sync_runs (id ${finished!.id}) and server logs for details.`,
+      });
+    }
 
     return {
       id: finished!.id,
@@ -226,6 +242,7 @@ export async function runGhlSync(
       contactsUpserted,
       tagsAdded,
       tagsRemoved,
+      memberErrors,
       errorMessage: null,
     };
   } catch (err) {
@@ -239,6 +256,7 @@ export async function runGhlSync(
         contactsUpserted,
         tagsAdded,
         tagsRemoved,
+        memberErrors,
         errorMessage: message,
         dryRunOutput: dryRun ? dryRunOutput : null,
       })
@@ -259,6 +277,7 @@ export async function runGhlSync(
       contactsUpserted,
       tagsAdded,
       tagsRemoved,
+      memberErrors,
       errorMessage: message,
     };
   }

@@ -24,18 +24,46 @@ export function ghlLocationId(): string {
   return id;
 }
 
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAYS_MS = [500, 1500];
+
+function isRetryable(status: number, body: string): boolean {
+  return status === 429 || status >= 500 || body.includes("Command timed out");
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: { ...authHeaders(), ...(init.headers as Record<string, string>) },
-  });
-  if (!res.ok) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const isLastAttempt = attempt === MAX_ATTEMPTS - 1;
+
+    let res: Response;
+    try {
+      res = await fetch(`${BASE_URL}${path}`, {
+        ...init,
+        headers: { ...authHeaders(), ...(init.headers as Record<string, string>) },
+      });
+    } catch (err) {
+      if (isLastAttempt) throw err;
+      await sleep(RETRY_DELAYS_MS[attempt]!);
+      continue;
+    }
+
+    if (res.ok) return (await res.json()) as T;
+
     const body = await res.text().catch(() => "");
-    throw new Error(
+    const error = new Error(
       `GHL ${init.method ?? "GET"} ${path} → ${res.status} ${res.statusText}${body ? `: ${body.slice(0, 300)}` : ""}`,
     );
+    if (!isLastAttempt && isRetryable(res.status, body)) {
+      await sleep(RETRY_DELAYS_MS[attempt]!);
+      continue;
+    }
+    throw error;
   }
-  return (await res.json()) as T;
+  throw new Error(`GHL ${init.method ?? "GET"} ${path} failed after ${MAX_ATTEMPTS} attempts`);
 }
 
 export type UpsertContactInput = {
