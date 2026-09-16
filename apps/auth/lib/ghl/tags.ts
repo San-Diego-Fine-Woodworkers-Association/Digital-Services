@@ -75,11 +75,11 @@ export function buildGhlTagPlan(input: GhlMemberInput): GhlTagPlan {
   const tagsToAdd = deriveActivityTags(input.registrations);
   const tagsToRemove: string[] = [];
 
-  if (input.active && input.membershipTier) {
+  if (input.membershipTier) {
     const tier = deriveTier(input.membershipTier);
     if (tier) tagsToAdd.push(membershipTierTag(tier));
     tagsToAdd.push(membershipTierFullTag(input.membershipTier));
-  } else if (!input.active) {
+  } else {
     if (input.lastKnownMembershipTier) {
       tagsToRemove.push(membershipTierTag(input.lastKnownMembershipTier));
     }

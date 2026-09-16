@@ -17,7 +17,6 @@ export type ProClassRegistrationInput = {
 export type GhlMemberInput = {
   registrations: ProClassRegistrationInput[];
   membershipTier: string | null;
-  active: boolean;
   lastKnownMembershipTier: string | null;
   lastKnownMembershipTierFull: string | null;
   memberSince: string | null;
