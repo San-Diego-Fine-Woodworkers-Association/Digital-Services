@@ -11,7 +11,6 @@ export function isJunkContact(contact: JunkCheckContact): boolean {
     return true;
   }
   if (TEST_CUSTOMER_LASTNAME.test(last.trim())) return true;
-  if (!contact.createDate) return true;
   return false;
 }
 

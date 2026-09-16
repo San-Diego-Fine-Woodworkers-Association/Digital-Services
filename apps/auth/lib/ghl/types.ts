@@ -2,7 +2,6 @@ export type JunkCheckContact = {
   firstName: string | null;
   lastName: string | null;
   email: string | null;
-  createDate: string | null;
 };
 
 export type JunkCheckProgram = {

@@ -28,7 +28,6 @@ export type ProClassContact = {
   LastName: string | null;
   Addresses: ProClassAddress[] | null;
   ContactAccounts?: ProClassContactAccount[] | null;
-  CreateDate?: string | null;
 };
 
 export type ProClassMembership = {
