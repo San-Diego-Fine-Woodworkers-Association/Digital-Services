@@ -184,13 +184,12 @@ describe("buildGhlTagPlan", () => {
   const base: GhlMemberInput = {
     registrations: [],
     membershipTier: null,
-    active: true,
     lastKnownMembershipTier: null,
     lastKnownMembershipTierFull: null,
     memberSince: "2020-01-01",
   };
 
-  test("active member with a tier gets both tier tags added alongside activity tags", () => {
+  test("member with a current tier gets both tier tags added alongside activity tags", () => {
     const plan = buildGhlTagPlan({
       ...base,
       registrations: [
@@ -218,12 +217,12 @@ describe("buildGhlTagPlan", () => {
     ]);
   });
 
-  test("active member with no tier gets no tier tags", () => {
+  test("member with no current tier and no last-known tier gets no tier tags", () => {
     const plan = buildGhlTagPlan({ ...base, membershipTier: null });
     expect(plan.tagsToAdd).toEqual([]);
   });
 
-  test("active member with an unmapped tier string gets the full tag but no normalized tag (drift, not a fabricated one)", () => {
+  test("member with an unmapped tier string gets the full tag but no normalized tag (drift, not a fabricated one)", () => {
     const plan = buildGhlTagPlan({
       ...base,
       membershipTier: "Some New Tier Nobody Has Mapped Yet",
@@ -233,10 +232,9 @@ describe("buildGhlTagPlan", () => {
     ]);
   });
 
-  test("lapsed member with last-known tiers gets both tags removed, not added", () => {
+  test("no current membershipTier with last-known tiers gets both tags removed, not added", () => {
     const plan = buildGhlTagPlan({
       ...base,
-      active: false,
       membershipTier: null,
       lastKnownMembershipTier: "bronze",
       lastKnownMembershipTierFull: "shop - bronze current",
@@ -248,15 +246,31 @@ describe("buildGhlTagPlan", () => {
     ]);
   });
 
-  test("lapsed member with no last-known tiers removes nothing", () => {
+  test("no current membershipTier and no last-known tiers removes nothing", () => {
     const plan = buildGhlTagPlan({
       ...base,
-      active: false,
       membershipTier: null,
       lastKnownMembershipTier: null,
       lastKnownMembershipTierFull: null,
     });
     expect(plan.tagsToRemove).toEqual([]);
+  });
+
+  test("a member whose ProClass membership lapsed (membershipTier null) still gets their stale tier tags removed, since removal never depends on ProClass's contact-presence flag", () => {
+    const plan = buildGhlTagPlan({
+      ...base,
+      registrations: [
+        { programTitle: "Beginner Woodworking", programTypeDescription: "Class" },
+      ],
+      membershipTier: null,
+      lastKnownMembershipTier: "gold",
+      lastKnownMembershipTierFull: "shop - gold current",
+    });
+    expect(plan.tagsToAdd).toEqual(["class registered: beginner woodworking"]);
+    expect(plan.tagsToRemove).toEqual([
+      "membership tier: gold",
+      "membership tier full: shop - gold current",
+    ]);
   });
 
   test("memberSinceField passes memberSince through as-is, including null", () => {

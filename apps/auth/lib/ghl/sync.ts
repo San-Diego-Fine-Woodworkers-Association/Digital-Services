@@ -160,11 +160,11 @@ export async function runGhlSync(
         .filter((r): r is ProClassRegistrationInput => r !== null);
 
       const proclassUser = proclassUsersByMemberId.get(String(contact.ContactId));
-      const active = proclassUser?.active ?? true;
+      const membershipTier = proclassUser?.membership ?? null;
 
       let lastKnownMembershipTier: string | null = null;
       let lastKnownMembershipTierFull: string | null = null;
-      if (!active && !dryRun) {
+      if (!membershipTier && !dryRun) {
         const found = await findContactByEmail(contact.Email);
         lastKnownMembershipTier = found ? findMembershipTierTag(found.tags) : null;
         lastKnownMembershipTierFull = found
@@ -174,8 +174,7 @@ export async function runGhlSync(
 
       const plan = buildGhlTagPlan({
         registrations: registrationInputs,
-        membershipTier: proclassUser?.membership ?? null,
-        active,
+        membershipTier,
         lastKnownMembershipTier,
         lastKnownMembershipTierFull,
         memberSince: proclassUser?.memberSince ?? null,
@@ -185,7 +184,7 @@ export async function runGhlSync(
 
       if (dryRun) {
         dryRunOutput.push({ email: contact.Email, ...plan });
-        if (active && (plan.tagsToAdd.length || plan.memberSinceField)) {
+        if (plan.tagsToAdd.length || plan.memberSinceField) {
           contactsUpserted++;
         }
         tagsAdded += plan.tagsToAdd.length;
@@ -194,7 +193,7 @@ export async function runGhlSync(
       }
 
       let contactId: string | null = null;
-      if (active && (plan.tagsToAdd.length || plan.memberSinceField)) {
+      if (plan.tagsToAdd.length || plan.memberSinceField) {
         const memberSinceFieldId = plan.memberSinceField
           ? await getOrCreateMemberSinceFieldId()
           : null;
