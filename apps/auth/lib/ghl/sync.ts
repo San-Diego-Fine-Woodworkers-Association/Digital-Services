@@ -48,13 +48,23 @@ function isRelevantProgramType(description: string): boolean {
   return isClass(description) || isShopSlot(description) || description === "Safety";
 }
 
+export type PriorSyncRun = { status: string; dryRun: boolean };
+
+export function determineSyncMode(priorRuns: PriorSyncRun[]): GhlSyncMode {
+  const hasRealOkRun = priorRuns.some(
+    (run) => run.status === "ok" && !run.dryRun,
+  );
+  return hasRealOkRun ? "lookback" : "backfill";
+}
+
 async function determineMode(): Promise<GhlSyncMode> {
-  const [priorOkRun] = await db
-    .select({ id: ghlSyncRunsTable.id })
-    .from(ghlSyncRunsTable)
-    .where(eq(ghlSyncRunsTable.status, "ok"))
-    .limit(1);
-  return priorOkRun ? "lookback" : "backfill";
+  const priorRuns = await db
+    .select({
+      status: ghlSyncRunsTable.status,
+      dryRun: ghlSyncRunsTable.dryRun,
+    })
+    .from(ghlSyncRunsTable);
+  return determineSyncMode(priorRuns);
 }
 
 export async function runGhlSync(
