@@ -4,8 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 3002",
-    "build": "next build",
+    "dev": "next dev -p 3002 --$([ \"$SDWA_LOCAL_LINK\" = \"1\" ] && echo webpack || echo turbopack)",
+    "build": "next build --$([ \"$SDWA_LOCAL_LINK\" = \"1\" ] && echo webpack || echo turbopack)",
     "start": "next start -p 3002",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push --config drizzle.config.ts",
@@ -18,7 +18,8 @@
   "dependencies": {
     "@react-email/components": "^0.0.31",
     "@react-email/render": "^1.0.3",
-    "@sdfwa/ui": "workspace:*",
+    "@sdwa/components": "^0.2.2",
+    "@sdwa/tokens": "^0.3.0",
     "better-auth": "^1.4.18",
     "dotenv": "^17.2.4",
     "drizzle-orm": "^0.45.1",

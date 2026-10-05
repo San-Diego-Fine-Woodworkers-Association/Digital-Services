@@ -92,6 +92,43 @@ bun run start
 | `bun run db:migrate` | Run Drizzle migrations |
 | `bun run lint` | Lint all workspaces |
 | `bun run format` | Format code with Prettier |
+| `bun run link:design-system [app...]` | Point app(s) at a local `../design-system` checkout instead of the published `@sdwa/*` packages |
+| `bun run unlink:design-system [app...]` | Restore the published `@sdwa/*` package versions |
+
+## Testing local design-system changes
+
+`@sdwa/components`/`@sdwa/tokens` come from the separate
+[design-system](https://github.com/San-Diego-Fine-Woodworkers-Association/Design-System)
+repo. To try a local change before it's published:
+
+```bash
+# once, sibling to this repo:
+git clone git@github.com:San-Diego-Fine-Woodworkers-Association/Design-System.git ../design-system
+
+bun run link:design-system        # links every app that depends on @sdwa/*
+bun run link:design-system auth   # or just one app
+```
+
+The command prints exactly what to run per linked app, e.g.:
+
+```bash
+cd apps/auth && NODE_PATH=<...> SDWA_LOCAL_LINK=1 bun run dev   # or build
+```
+
+Copy that line rather than typing your own — the `NODE_PATH` value is
+specific to what's currently installed and changes when dependencies update.
+`SDWA_LOCAL_LINK=1` matters: Turbopack can't currently follow a package
+linked from outside this repo (a
+[known upstream limitation](https://github.com/vercel/next.js/issues/91896)),
+so linked apps fall back to webpack for as long as they're linked; `NODE_PATH`
+separately works around `@sdwa/tokens`' `@import "tailwindcss"` not resolving
+through the link (also link-only — real installs don't need it). There's no
+watch mode wired up — after each design-system source change, rerun
+`bun run build` in `design-system` (or the whole `link:design-system` command
+again) to pick it up.
+
+Run `bun run unlink:design-system` when done to go back to the published
+versions — don't commit a `package.json` with a `link:` dependency.
 
 ## Database
 - **ORM:** Drizzle (schema and migrations live under `apps/diw/lib/db/` and `apps/diw/drizzle/`)

@@ -1,15 +1,14 @@
-import { ChevronRight } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 
 import memberCard from "@/public/assets/sample-member-card.jpeg";
-import { Button } from "@sdfwa/ui/components/button";
-import { Card, CardContent } from "@sdfwa/ui/components/card";
 import {
+  Card,
+  CardContent,
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@sdfwa/ui/components/collapsible";
+  Link,
+} from "@sdwa/components";
 
 export default function FaqPage() {
   return (
@@ -40,10 +39,7 @@ export default function FaqPage() {
                 .
               </p>
               <Collapsible className="mt-1">
-                <CollapsibleTrigger className="group flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline">
-                  <ChevronRight className="size-4 transition-transform group-data-[state=open]:rotate-90" />
-                  Example Member Card
-                </CollapsibleTrigger>
+                <CollapsibleTrigger>Example Member Card</CollapsibleTrigger>
                 <CollapsibleContent>
                   <Image
                     src={memberCard}
@@ -73,9 +69,9 @@ export default function FaqPage() {
             </section>
 
             <div className="flex justify-center">
-              <Button asChild size="lg" className="text">
-                <Link href="/login">Back to Sign In</Link>
-              </Button>
+              <Link href="/login" variant="primary">
+                Back to Sign In
+              </Link>
             </div>
           </CardContent>
         </Card>
