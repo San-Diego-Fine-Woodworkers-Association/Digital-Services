@@ -107,6 +107,8 @@ apps/auth
 - [API reference](docs/api-reference.md) — every endpoint, with shapes.
 - [ProClass ETL](docs/proclass-sync.md) — the hourly sync and what to do when
   it breaks.
+- [ProClass → GHL sync](docs/ghl-sync.md) — the daily GoHighLevel push,
+  running a backfill, dry-run mode, and what to do when it breaks.
 - [Integrating consumer apps](docs/integrating-apps.md) — how `diw`,
   `shop-ops`, and future apps consume sessions via `@sdfwa/auth-client`.
 - [Google OAuth setup](docs/google-oauth.md) — Google Cloud Console steps for

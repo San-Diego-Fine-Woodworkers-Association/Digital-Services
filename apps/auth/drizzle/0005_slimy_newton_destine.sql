@@ -1,0 +1,1 @@
+ALTER TABLE "ghl_sync_runs" ADD COLUMN "member_errors" integer DEFAULT 0 NOT NULL;

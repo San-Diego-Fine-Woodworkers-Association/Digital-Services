@@ -10,18 +10,17 @@ On each run:
 
 1. Inserts a `sync_runs` row with `status='running'`.
 2. `GET /api/Contacts` — pulls every contact in ProClass (1+ minute call).
-3. Derives the **primary** `AccountId` from each contact's
-   `ContactAccounts[].IsPrimary`.
-4. Batches account IDs into 15-id `$filter=AccountId eq 1 or AccountId eq 2 …`
-   queries against `/api/Memberships`, paced under ProClass's 50-per-10s limit.
-5. Joins by account id, picks the **current Active** membership for
-   `proclass_users.membership` and the **oldest** membership's `CreateDate`
-   for `proclass_users.member_since`.
-6. Upserts every contact (with an email) keyed on `member_id`, setting
+3. `GET /api/Memberships` (unfiltered) — pulls every membership in ProClass
+   across all accounts in one call (~3s for SDFWA's ~4,500 memberships).
+4. Groups memberships by `AccountId` and joins against each contact's
+   **primary** `AccountId` (from `ContactAccounts[].IsPrimary`), picking the
+   **current Active** membership for `proclass_users.membership` and the
+   **oldest** membership's `CreateDate` for `proclass_users.member_since`.
+5. Upserts every contact (with an email) keyed on `member_id`, setting
    `active=true` and bumping `last_synced_at`.
-7. **Soft-deactivates** every existing `proclass_users` row whose member_id
+6. **Soft-deactivates** every existing `proclass_users` row whose member_id
    was not present in this run — sets `active=false`.
-8. Updates the `sync_runs` row with final counts and `status='ok'`.
+7. Updates the `sync_runs` row with final counts and `status='ok'`.
 
 If anything throws, the catch block writes `status='error'` with the
 message and the route handler returns 500.
@@ -105,7 +104,7 @@ If ProClass adds or renames fields, the transformations live in
 | 401 on the cron route | `CRON_SECRET` mismatch or missing. |
 | 500 / `errorMessage` includes "PROCLASS_USERNAME and PROCLASS_PASSWORD must be set" | Env vars not loaded. |
 | `with_active_membership` is 0 but `total` is large | Likely a field-name change on the contact (`ContactAccounts` vs. older `Accounts`). Inspect `/api/Contacts?$filter=ContactId eq <id>` directly. |
-| Run takes much longer than expected | ProClass rate limit. The client paces 50 queries / 10s; if they tighten, raise the `RATE_LIMIT_WINDOW_MS` constant. |
+| Run takes much longer than expected | Both `/api/Contacts` and `/api/Memberships` are single unfiltered calls now — no client-side batching/pacing. A slowdown means ProClass itself is slow, not a rate limit we're hitting. |
 
 ## Reset (dev only)
 

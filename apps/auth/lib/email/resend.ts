@@ -36,3 +36,34 @@ export async function sendMagicLink({
     throw new Error(`Resend send failed: ${result.error.message}`);
   }
 }
+
+const SYNC_ERROR_RECIPIENT = "digital-services@sdfwa.org";
+
+type SendSyncErrorEmailArgs = {
+  syncName: string;
+  errorMessage: string;
+};
+
+export async function sendSyncErrorEmail({
+  syncName,
+  errorMessage,
+}: SendSyncErrorEmailArgs): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const subject = `${syncName} failed`;
+  const text = `${syncName} failed with:\n\n${errorMessage}`;
+  if (!apiKey) {
+    console.log(`[sync-error] (no RESEND_API_KEY) ${subject}: ${text}`);
+    return;
+  }
+  const from = process.env.EMAIL_FROM ?? "no-reply@auth.sdfwa.org";
+  const resend = new Resend(apiKey);
+  const result = await resend.emails.send({
+    from,
+    to: SYNC_ERROR_RECIPIENT,
+    subject,
+    text,
+  });
+  if (result.error) {
+    throw new Error(`Resend send failed: ${result.error.message}`);
+  }
+}

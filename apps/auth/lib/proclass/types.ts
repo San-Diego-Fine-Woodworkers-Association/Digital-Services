@@ -37,6 +37,21 @@ export type ProClassMembership = {
   CreateDate: string | null;
 };
 
+export type ProClassProgram = {
+  ProgramId: number;
+  Title: string | null;
+  Description: string | null;
+  ProgramType: { Description: string } | null;
+  StatusDescription: string | null;
+};
+
+export type ProClassRegistration = {
+  StudentId: number;
+  ProgramId: number;
+  AccountId: number;
+  CreateDate: string | null;
+};
+
 /**
  * Internal projection used to upsert into the members table.
  * memberId is the ProClass ContactId stringified.
