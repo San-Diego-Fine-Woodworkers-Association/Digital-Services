@@ -107,19 +107,21 @@ should arrive within seconds.
 
 ## 7. Scheduled tasks
 
-In Dokploy, on the auth application, add these scheduled tasks:
+In Dokploy, on the auth application, add these scheduled tasks. Set each
+task's **Shell Type** to `sh`: the image is Alpine-based and has neither
+`bash` nor `curl`, so the commands use BusyBox `wget`.
 
 | Field | Value |
 | --- | --- |
 | Schedule | `0 * * * *` (hourly) |
-| Command | `curl -fsSL -X POST -H "Authorization: Bearer ${CRON_SECRET}" https://auth.sdfwa.org/api/cron/proclass-sync` |
+| Command | `wget -qO- --post-data='' --header="Authorization: Bearer ${CRON_SECRET}" https://auth.sdfwa.org/api/cron/proclass-sync` |
 
 After one hour, check `sync_runs` in the prod DB for `status='ok'`.
 
 | Field | Value |
 | --- | --- |
 | Schedule | `0 3 * * *` (daily) |
-| Command | `curl -fsSL -X POST -H "Authorization: Bearer ${CRON_SECRET}" "https://auth.sdfwa.org/api/cron/ghl-sync?mode=lookback&dryRun=false"` |
+| Command | `wget -qO- --post-data='' --header="Authorization: Bearer ${CRON_SECRET}" "https://auth.sdfwa.org/api/cron/ghl-sync?mode=lookback&dryRun=false"` |
 
 See [ghl-sync.md](ghl-sync.md) for the initial backfill run and the
 `mode`/`dryRun` params.
@@ -127,7 +129,7 @@ See [ghl-sync.md](ghl-sync.md) for the initial backfill run and the
 | Field | Value |
 | --- | --- |
 | Schedule | `0 4 * * 0` (weekly) |
-| Command | `curl -fsSL -X POST -H "Authorization: Bearer ${CRON_SECRET}" https://auth.sdfwa.org/api/cron/prune-sync-runs` |
+| Command | `wget -qO- --post-data='' --header="Authorization: Bearer ${CRON_SECRET}" https://auth.sdfwa.org/api/cron/prune-sync-runs` |
 
 ## 8. First deploy
 
