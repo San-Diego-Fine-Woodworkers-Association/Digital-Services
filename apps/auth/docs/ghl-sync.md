@@ -3,7 +3,9 @@
 Pushes each member's ProClass activity (classes taken, shop slots used, HOST
 safety certification, membership tier, member-since date) into GoHighLevel
 (GHL) as tags and one custom field, keyed by email. GHL's own contact record
-is the durable store — there's no local table for activity history. See
+is the durable store — there's no local table for activity history. The
+only local per-member state is `ghl_contact_state`, a hash of what was last
+sent, used to skip unchanged members. See
 [apps/auth/CONTEXT.md](../CONTEXT.md) for the domain vocabulary (Program,
 Class, Shop Slot, GHL tag format) and
 [docs/proclass-sync.md](proclass-sync.md) for the hourly ETL this sync reads
@@ -26,7 +28,14 @@ On each run:
    Membership tier and Member Since always come from the full
    `proclass_users` row regardless of mode — only which *registrations*
    feed activity tags is windowed.
-5. In **dry-run** mode (the default), never calls the GHL API — accumulates
+5. Hashes each member's inputs (name, the registrations in scope,
+   membership tier, Member Since). In **lookback** mode, a member whose hash
+   matches their `ghl_contact_state` row is skipped without any GHL call
+   and counted in `members_unchanged`. **Backfill** mode never skips. A
+   real run saves the hash after a member is processed successfully, so a
+   member that fails is retried on the next run. Dry runs read the hashes
+   but never write them.
+6. In **dry-run** mode (the default), never calls the GHL API — accumulates
    what it would have sent into the run's `dry_run_output` column instead.
    In a real run, calls `lib/ghl/client.ts` per member: upsert-by-email +
    incremental add-tag for anyone with something new to say, plus an
@@ -34,16 +43,26 @@ On each run:
    (`proclass_users.membership` is `null`) and still carries a stale tier
    tag in GHL. Each GHL call retries transient failures (429, 5xx, or a
    timeout) up to 3 times with backoff before giving up.
-6. Each member is processed independently — one member's failure doesn't
+7. Each member is processed independently — one member's failure doesn't
    stop the run. It's logged, counted in `member_errors`, and the sync
    moves on to the next member.
-7. Writes a `ghl_sync_runs` row with final counts and `status='ok'` (or
+8. Writes a `ghl_sync_runs` row with final counts and `status='ok'` (or
    `'error'` if something outside the per-member loop failed). An email to
    digital-services@sdfwa.org goes out via Resend on `status='error'`, and
    also whenever `member_errors > 0` even though the run otherwise
    completed.
 
 ## Running it
+
+The route checks the bearer and params, starts the sync in the background,
+and replies `202` straight away:
+
+```jsonc
+{ "status": "started", "mode": "lookback", "dryRun": true }
+```
+
+The run's results go only to its `ghl_sync_runs` row (see Observability
+below) and the error email. The response never includes them.
 
 `mode` and `dryRun` are both explicit request parameters. The sync never
 looks at its own run history to decide anything — pick both consciously
@@ -87,7 +106,7 @@ Every run leaves a `ghl_sync_runs` row:
 
 ```sql
 SELECT started_at, mode, dry_run, status, members_scanned,
-       contacts_upserted, tags_added, tags_removed, member_errors,
+       contacts_upserted, tags_added, tags_removed, member_errors, members_unchanged,
        error_message
 FROM ghl_sync_runs
 ORDER BY started_at DESC
@@ -136,6 +155,9 @@ exact rules. In addition to the tags documented there:
 | 400, `mode must be one of: backfill, lookback` | Typo'd `?mode=` value. |
 | A real member missing an expected tag | Check `isJunkContact`/`isJunkProgram` in `lib/ghl/filters.ts` — a false positive there silently drops the member from the whole sync. |
 | `tagsRemoved` is 0 in a dry run | Expected — resolving which tag to remove requires reading the contact's current GHL tags, which dry-run mode never does (it makes no GHL calls at all). Only a real run can remove tags. |
+| `ghl_sync_runs` row stuck at `status='running'` | The container restarted (e.g. a deploy) mid-run. Re-run the same `mode`/`dryRun`; writes are idempotent. |
+| A member's GHL contact was edited by hand and lookback doesn't fix it | Lookback skips members whose ProClass inputs haven't changed. Run `mode=backfill`, which re-sends everyone. |
+| Tag logic in `lib/ghl/tags.ts` changed | Lookback won't re-send unchanged members, so run `mode=backfill` once after deploying. |
 | Run takes far longer than a dry run | A real run makes live GHL HTTP calls sequentially, one member at a time, with retries on transient failures. Dry runs make none. |
 | `status='ok'` but `member_errors > 0` | Some members failed after retries were exhausted. The run still completed for everyone else — check server logs for `ghl-sync: failed for <email>` to see which members and why, then re-run the same `mode`/`dryRun` to retry just the failures (writes are idempotent). |
 
@@ -170,7 +192,7 @@ endpoints.
 
 ```bash
 docker exec ghl-proclass-wayfinder-map-db-1 psql -U admin -d auth \
-  -c "TRUNCATE ghl_sync_runs;"
+  -c "TRUNCATE ghl_sync_runs, ghl_contact_state;"
 curl -X POST -H "Authorization: Bearer $CRON_SECRET" \
   "http://localhost:3002/api/cron/ghl-sync?mode=backfill&dryRun=true"
 ```

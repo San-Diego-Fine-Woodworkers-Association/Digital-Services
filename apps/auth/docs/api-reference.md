@@ -275,3 +275,16 @@ underlying behavior.
 | 200 | `sync_runs` row created with status `ok`. |
 | 401 | Missing or wrong bearer. |
 | 500 | ETL failed; `sync_runs` row records the error message. |
+
+### `POST /api/cron/ghl-sync`
+
+Internal daily ProClass → GHL sync. Header: `Authorization: Bearer
+${CRON_SECRET}`. Query params `mode` (`backfill` | `lookback`) and `dryRun`.
+Starts the sync in the background and responds before it runs. See
+[ghl-sync.md](ghl-sync.md) for the params and run results.
+
+| Status | Meaning |
+| --- | --- |
+| 202 | Sync started. Body: `{ status: "started", mode, dryRun }`. The outcome lands in `ghl_sync_runs`. |
+| 401 | Missing or wrong bearer. |
+| 400 | Invalid `mode`. |

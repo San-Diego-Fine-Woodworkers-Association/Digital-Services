@@ -108,28 +108,39 @@ should arrive within seconds.
 ## 7. Scheduled tasks
 
 In Dokploy, on the auth application, add these scheduled tasks. Set each
-task's **Shell Type** to `sh`: the image is Alpine-based and has neither
-`bash` nor `curl`, so the commands use BusyBox `wget`.
+task's **Shell Type** to `sh`: the image is Alpine-based and has no `bash`.
+Dokploy runs the command inside the auth container, so it calls the app
+directly on `127.0.0.1:${PORT}` with Node's `http` module, which has no
+response timeout. It prints the status code and body, and exits non-zero on
+any non-2xx response.
+
+Every task uses the same command with a different URL:
+
+```sh
+node -e 'require("http").request(process.argv[1],{method:"POST",headers:{Authorization:"Bearer "+process.env.CRON_SECRET}},r=>{let b="";r.on("data",c=>b+=c);r.on("end",()=>{console.log(r.statusCode,b);if(r.statusCode>=300)process.exit(1)})}).on("error",e=>{console.error(e);process.exit(1)}).end()' "<URL>"
+```
 
 | Field | Value |
 | --- | --- |
 | Schedule | `0 * * * *` (hourly) |
-| Command | `wget -qO- --post-data='' --header="Authorization: Bearer ${CRON_SECRET}" https://auth.sdfwa.org/api/cron/proclass-sync` |
+| URL | `http://127.0.0.1:${PORT}/api/cron/proclass-sync` |
 
 After one hour, check `sync_runs` in the prod DB for `status='ok'`.
 
 | Field | Value |
 | --- | --- |
 | Schedule | `0 3 * * *` (daily) |
-| Command | `wget -qO- --post-data='' --header="Authorization: Bearer ${CRON_SECRET}" "https://auth.sdfwa.org/api/cron/ghl-sync?mode=lookback&dryRun=false"` |
+| URL | `http://127.0.0.1:${PORT}/api/cron/ghl-sync?mode=lookback&dryRun=false` |
 
-See [ghl-sync.md](ghl-sync.md) for the initial backfill run and the
+This route replies `202` as soon as the sync starts, so the task succeeds
+once the run is underway. Check the run's outcome in `ghl_sync_runs`. See
+[ghl-sync.md](ghl-sync.md) for the initial backfill run and the
 `mode`/`dryRun` params.
 
 | Field | Value |
 | --- | --- |
 | Schedule | `0 4 * * 0` (weekly) |
-| Command | `wget -qO- --post-data='' --header="Authorization: Bearer ${CRON_SECRET}" https://auth.sdfwa.org/api/cron/prune-sync-runs` |
+| URL | `http://127.0.0.1:${PORT}/api/cron/prune-sync-runs` |
 
 ## 8. First deploy
 

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import { runGhlSync, type GhlSyncMode } from "@/lib/ghl/sync";
 
@@ -30,7 +30,9 @@ export async function POST(req: Request) {
   }
   const mode = (modeParam as GhlSyncMode | null) ?? undefined;
 
-  const result = await runGhlSync({ dryRun, mode });
-  const status = result.status === "ok" ? 200 : 500;
-  return NextResponse.json(result, { status });
+  after(() => runGhlSync({ dryRun, mode }));
+  return NextResponse.json(
+    { status: "started", mode: mode ?? "lookback", dryRun },
+    { status: 202 },
+  );
 }

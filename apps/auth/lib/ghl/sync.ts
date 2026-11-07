@@ -1,6 +1,13 @@
+import { createHash } from "node:crypto";
+
 import { eq } from "drizzle-orm";
 
-import { db, ghlSyncRunsTable, proclassUsersTable } from "../db";
+import {
+  db,
+  ghlContactStateTable,
+  ghlSyncRunsTable,
+  proclassUsersTable,
+} from "../db";
 import { sendSyncErrorEmail } from "../email/resend";
 import {
   fetchAllContacts,
@@ -40,6 +47,7 @@ export type GhlSyncRunResult = {
   tagsAdded: number;
   tagsRemoved: number;
   memberErrors: number;
+  membersUnchanged: number;
   errorMessage: string | null;
 };
 
@@ -47,6 +55,32 @@ type DryRunEntry = { email: string } & GhlTagPlan;
 
 function isRelevantProgramType(description: string): boolean {
   return isClass(description) || isShopSlot(description) || description === "Safety";
+}
+
+function hashMemberInput(input: {
+  firstName: string | null;
+  lastName: string | null;
+  registrations: ProClassRegistrationInput[];
+  membershipTier: string | null;
+  memberSince: string | null;
+}): string {
+  const registrations = input.registrations
+    .map((r) => [r.programTypeDescription, r.programTitle])
+    .sort((a, b) => a.join("\0").localeCompare(b.join("\0")));
+  return createHash("sha256")
+    .update(JSON.stringify({ ...input, registrations }))
+    .digest("hex");
+}
+
+async function saveContactState(email: string, inputHash: string): Promise<void> {
+  const syncedAt = new Date();
+  await db
+    .insert(ghlContactStateTable)
+    .values({ email, inputHash, syncedAt })
+    .onConflictDoUpdate({
+      target: ghlContactStateTable.email,
+      set: { inputHash, syncedAt },
+    });
 }
 
 export async function runGhlSync(
@@ -63,16 +97,24 @@ export async function runGhlSync(
   let tagsAdded = 0;
   let tagsRemoved = 0;
   let memberErrors = 0;
+  let membersUnchanged = 0;
+  let memberSinceFieldId: string | null = null;
   const dryRunOutput: DryRunEntry[] = [];
 
   try {
-    const [contacts, , programs, registrations, proclassUsers] = await Promise.all([
-      fetchAllContacts(),
-      fetchAllMemberships(),
-      fetchAllPrograms(),
-      fetchAllRegistrations(),
-      db.select().from(proclassUsersTable),
-    ]);
+    const [contacts, , programs, registrations, proclassUsers, contactStates] =
+      await Promise.all([
+        fetchAllContacts(),
+        fetchAllMemberships(),
+        fetchAllPrograms(),
+        fetchAllRegistrations(),
+        db.select().from(proclassUsersTable),
+        db.select().from(ghlContactStateTable),
+      ]);
+
+    const inputHashByEmail = new Map(
+      contactStates.map((s) => [s.email, s.inputHash]),
+    );
 
     const proclassUsersByMemberId = new Map(
       proclassUsers.map((u) => [u.memberId, u]),
@@ -144,6 +186,19 @@ export async function runGhlSync(
         const proclassUser = proclassUsersByMemberId.get(String(contact.ContactId));
         const membershipTier = proclassUser?.membership ?? null;
 
+        const email = contact.Email.toLowerCase();
+        const inputHash = hashMemberInput({
+          firstName: contact.FirstName,
+          lastName: contact.LastName,
+          registrations: registrationInputs,
+          membershipTier,
+          memberSince: proclassUser?.memberSince ?? null,
+        });
+        if (mode === "lookback" && inputHashByEmail.get(email) === inputHash) {
+          membersUnchanged++;
+          continue;
+        }
+
         let lastKnownMembershipTier: string | null = null;
         let lastKnownMembershipTierFull: string | null = null;
         if (!membershipTier && !dryRun) {
@@ -162,7 +217,10 @@ export async function runGhlSync(
           memberSince: proclassUser?.memberSince ?? null,
         });
 
-        if (!plan.tagsToAdd.length && !plan.tagsToRemove.length) continue;
+        if (!plan.tagsToAdd.length && !plan.tagsToRemove.length) {
+          if (!dryRun) await saveContactState(email, inputHash);
+          continue;
+        }
 
         if (dryRun) {
           dryRunOutput.push({ email: contact.Email, ...plan });
@@ -176,14 +234,14 @@ export async function runGhlSync(
 
         let contactId: string | null = null;
         if (plan.tagsToAdd.length || plan.memberSinceField) {
-          const memberSinceFieldId = plan.memberSinceField
-            ? await getOrCreateMemberSinceFieldId()
-            : null;
+          if (plan.memberSinceField) {
+            memberSinceFieldId ??= await getOrCreateMemberSinceFieldId();
+          }
           const upserted = await upsertContactByEmail({
             email: contact.Email,
             firstName: contact.FirstName,
             lastName: contact.LastName,
-            memberSinceFieldId,
+            memberSinceFieldId: plan.memberSinceField ? memberSinceFieldId : null,
             memberSinceValue: plan.memberSinceField,
           });
           contactId = upserted.contactId;
@@ -204,6 +262,8 @@ export async function runGhlSync(
             tagsRemoved += plan.tagsToRemove.length;
           }
         }
+
+        await saveContactState(email, inputHash);
       } catch (err) {
         memberErrors++;
         const message = err instanceof Error ? err.message : String(err);
@@ -221,6 +281,7 @@ export async function runGhlSync(
         tagsAdded,
         tagsRemoved,
         memberErrors,
+        membersUnchanged,
         dryRunOutput: dryRun ? dryRunOutput : null,
       })
       .where(eq(ghlSyncRunsTable.id, runId))
@@ -243,6 +304,7 @@ export async function runGhlSync(
       tagsAdded,
       tagsRemoved,
       memberErrors,
+      membersUnchanged,
       errorMessage: null,
     };
   } catch (err) {
@@ -257,6 +319,7 @@ export async function runGhlSync(
         tagsAdded,
         tagsRemoved,
         memberErrors,
+        membersUnchanged,
         errorMessage: message,
         dryRunOutput: dryRun ? dryRunOutput : null,
       })
@@ -278,6 +341,7 @@ export async function runGhlSync(
       tagsAdded,
       tagsRemoved,
       memberErrors,
+      membersUnchanged,
       errorMessage: message,
     };
   }

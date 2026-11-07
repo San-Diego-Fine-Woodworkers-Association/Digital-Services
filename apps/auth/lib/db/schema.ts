@@ -110,8 +110,15 @@ export const ghlSyncRunsTable = pgTable("ghl_sync_runs", {
   tagsAdded: integer("tags_added").notNull().default(0),
   tagsRemoved: integer("tags_removed").notNull().default(0),
   memberErrors: integer("member_errors").notNull().default(0),
+  membersUnchanged: integer("members_unchanged").notNull().default(0),
   errorMessage: text("error_message"),
   dryRunOutput: jsonb("dry_run_output"),
+});
+
+export const ghlContactStateTable = pgTable("ghl_contact_state", {
+  email: text("email").primaryKey(),
+  inputHash: text("input_hash").notNull(),
+  syncedAt: timestamp("synced_at").notNull().defaultNow(),
 });
 
 export const volunteersRelations = relations(volunteersTable, ({ one }) => ({

@@ -17,6 +17,7 @@ export {
   magicLinkTokensTable,
   syncRunsTable,
   ghlSyncRunsTable,
+  ghlContactStateTable,
 } from "./db/schema";
 
 export { user, session, account, verification, jwks } from "./db/auth-schema";
