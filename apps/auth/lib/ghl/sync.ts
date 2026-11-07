@@ -16,6 +16,7 @@ import {
   fetchAllRegistrations,
 } from "../proclass/client";
 import { getPrimaryAccountId, programTitle } from "../proclass/transform";
+import { deriveTier, type Tier } from "../auth/entitlement";
 import {
   addTags,
   findContactByEmail,
@@ -55,6 +56,19 @@ type DryRunEntry = { email: string } & GhlTagPlan;
 
 function isRelevantProgramType(description: string): boolean {
   return isClass(description) || isShopSlot(description) || description === "Safety";
+}
+
+const TIER_RANK: Record<Tier, number> = {
+  bronze: 2,
+  silver: 3,
+  gold: 4,
+  lifetime: 5,
+};
+
+function membershipRank(membership: string | null): number {
+  if (!membership) return 0;
+  const tier = deriveTier(membership);
+  return tier ? TIER_RANK[tier] : 1;
 }
 
 function hashMemberInput(input: {
@@ -151,6 +165,7 @@ export async function runGhlSync(
       registrationsByAccountId.set(r.AccountId, list);
     }
 
+    const contactsByEmail = new Map<string, typeof contacts>();
     for (const contact of contacts) {
       if (!contact.Email) continue;
       if (
@@ -162,13 +177,39 @@ export async function runGhlSync(
       ) {
         continue;
       }
+      const email = contact.Email.toLowerCase();
+      const list = contactsByEmail.get(email) ?? [];
+      list.push(contact);
+      contactsByEmail.set(email, list);
+    }
 
+    for (const [email, emailContacts] of contactsByEmail) {
       membersScanned++;
 
       try {
-        const accountId = getPrimaryAccountId(contact);
-        const accountRegistrations =
-          accountId !== null ? (registrationsByAccountId.get(accountId) ?? []) : [];
+        const memberships = emailContacts.map(
+          (c) => proclassUsersByMemberId.get(String(c.ContactId)) ?? null,
+        );
+        let primaryIndex = 0;
+        memberships.forEach((m, i) => {
+          if (
+            membershipRank(m?.membership ?? null) >
+            membershipRank(memberships[primaryIndex]?.membership ?? null)
+          ) {
+            primaryIndex = i;
+          }
+        });
+        const contact = emailContacts[primaryIndex]!;
+        const proclassUser = memberships[primaryIndex];
+
+        const accountIds = new Set(
+          emailContacts
+            .map(getPrimaryAccountId)
+            .filter((id): id is number => id !== null),
+        );
+        const accountRegistrations = [...accountIds].flatMap(
+          (id) => registrationsByAccountId.get(id) ?? [],
+        );
         const registrationInputs: ProClassRegistrationInput[] = accountRegistrations
           .map((r) => {
             const program = programsById.get(r.ProgramId);
@@ -183,10 +224,8 @@ export async function runGhlSync(
           })
           .filter((r): r is ProClassRegistrationInput => r !== null);
 
-        const proclassUser = proclassUsersByMemberId.get(String(contact.ContactId));
         const membershipTier = proclassUser?.membership ?? null;
 
-        const email = contact.Email.toLowerCase();
         const inputHash = hashMemberInput({
           firstName: contact.FirstName,
           lastName: contact.LastName,
@@ -202,7 +241,7 @@ export async function runGhlSync(
         let lastKnownMembershipTier: string | null = null;
         let lastKnownMembershipTierFull: string | null = null;
         if (!membershipTier && !dryRun) {
-          const found = await findContactByEmail(contact.Email);
+          const found = await findContactByEmail(email);
           lastKnownMembershipTier = found ? findMembershipTierTag(found.tags) : null;
           lastKnownMembershipTierFull = found
             ? findMembershipTierFullTag(found.tags)
@@ -223,7 +262,7 @@ export async function runGhlSync(
         }
 
         if (dryRun) {
-          dryRunOutput.push({ email: contact.Email, ...plan });
+          dryRunOutput.push({ email, ...plan });
           if (plan.tagsToAdd.length || plan.memberSinceField) {
             contactsUpserted++;
           }
@@ -238,7 +277,7 @@ export async function runGhlSync(
             memberSinceFieldId ??= await getOrCreateMemberSinceFieldId();
           }
           const upserted = await upsertContactByEmail({
-            email: contact.Email,
+            email,
             firstName: contact.FirstName,
             lastName: contact.LastName,
             memberSinceFieldId: plan.memberSinceField ? memberSinceFieldId : null,
@@ -254,7 +293,7 @@ export async function runGhlSync(
 
         if (plan.tagsToRemove.length) {
           if (!contactId) {
-            const found = await findContactByEmail(contact.Email);
+            const found = await findContactByEmail(email);
             contactId = found?.id ?? null;
           }
           if (contactId) {
@@ -267,7 +306,7 @@ export async function runGhlSync(
       } catch (err) {
         memberErrors++;
         const message = err instanceof Error ? err.message : String(err);
-        console.error(`ghl-sync: failed for ${contact.Email}: ${message}`);
+        console.error(`ghl-sync: failed for ${email}: ${message}`);
       }
     }
 

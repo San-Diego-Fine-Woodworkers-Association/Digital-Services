@@ -21,21 +21,26 @@ On each run:
 2. Filters out junk contacts/programs (`lib/ghl/filters.ts`) and joins
    registrations against Programs whose type is `Class`, `Shop Slot`
    (any subtype), or `Safety`.
-3. For each remaining member, computes the exact tag/field set via
+3. Merges ProClass contacts that share an email (case-insensitive) into one
+   member, since GHL is keyed by email. The merged member gets the union of
+   all their accounts' registrations, and the name, membership, and Member
+   Since of the contact with the highest tier (`lifetime` > `gold` >
+   `silver` > `bronze` > an unrecognised membership > none).
+4. For each member, computes the exact tag/field set via
    `buildGhlTagPlan` (`lib/ghl/tags.ts`).
-4. In **backfill** mode, considers a member's entire registration history;
+5. In **backfill** mode, considers a member's entire registration history;
    in **lookback** mode, only registrations from the trailing 7 days.
    Membership tier and Member Since always come from the full
    `proclass_users` row regardless of mode — only which *registrations*
    feed activity tags is windowed.
-5. Hashes each member's inputs (name, the registrations in scope,
+6. Hashes each member's inputs (name, the registrations in scope,
    membership tier, Member Since). In **lookback** mode, a member whose hash
    matches their `ghl_contact_state` row is skipped without any GHL call
    and counted in `members_unchanged`. **Backfill** mode never skips. A
    real run saves the hash after a member is processed successfully, so a
    member that fails is retried on the next run. Dry runs read the hashes
    but never write them.
-6. In **dry-run** mode (the default), never calls the GHL API — accumulates
+7. In **dry-run** mode (the default), never calls the GHL API — accumulates
    what it would have sent into the run's `dry_run_output` column instead.
    In a real run, calls `lib/ghl/client.ts` per member: upsert-by-email +
    incremental add-tag for anyone with something new to say, plus an
@@ -43,10 +48,10 @@ On each run:
    (`proclass_users.membership` is `null`) and still carries a stale tier
    tag in GHL. Each GHL call retries transient failures (429, 5xx, or a
    timeout) up to 3 times with backoff before giving up.
-7. Each member is processed independently — one member's failure doesn't
+8. Each member is processed independently — one member's failure doesn't
    stop the run. It's logged, counted in `member_errors`, and the sync
    moves on to the next member.
-8. Writes a `ghl_sync_runs` row with final counts and `status='ok'` (or
+9. Writes a `ghl_sync_runs` row with final counts and `status='ok'` (or
    `'error'` if something outside the per-member loop failed). An email to
    digital-services@sdfwa.org goes out via Resend on `status='error'`, and
    also whenever `member_errors > 0` even though the run otherwise
