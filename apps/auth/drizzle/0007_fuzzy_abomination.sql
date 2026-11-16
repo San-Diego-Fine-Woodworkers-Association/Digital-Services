@@ -1,0 +1,1 @@
+ALTER TABLE "proclass_users" ADD COLUMN "username" text;

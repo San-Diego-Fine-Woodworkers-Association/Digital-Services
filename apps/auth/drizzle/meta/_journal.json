@@ -50,6 +50,13 @@
       "when": 1794011748874,
       "tag": "0006_funny_hitman",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794789783451,
+      "tag": "0007_fuzzy_abomination",
+      "breakpoints": true
     }
   ]
 }
