@@ -20,6 +20,7 @@ export type ProClassContactAccount = {
 
 export type ProClassContact = {
   ContactId: number;
+  Username: string | null;
   Email: string | null;
   Mobile: string | null;
   HomePhone: string | null;
@@ -58,6 +59,7 @@ export type ProClassRegistration = {
  */
 export type ProjectedMember = {
   memberId: string;
+  username: string | null;
   email: string;
   phone: string | null;
   firstName: string | null;

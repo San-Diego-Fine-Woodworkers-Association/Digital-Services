@@ -19,6 +19,7 @@ import { user } from "./auth-schema";
  */
 export const proclassUsersTable = pgTable("proclass_users", {
   memberId: text("member_id").primaryKey(),
+  username: text("username"),
   email: text("email").notNull(),
   phone: text("phone"),
   firstName: text("first_name"),

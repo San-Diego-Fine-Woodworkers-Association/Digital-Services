@@ -3,7 +3,7 @@
 Single sign-on for everything under `*.sdfwa.org`. One Next.js app, deployed to
 `auth.sdfwa.org`, that:
 
-- Authenticates **members** with email + ProClass Member ID, plus a one-time
+- Authenticates **members** with ProClass username or email + Member ID, plus a one-time
   magic-link confirmation per device (90-day trust).
 - Authenticates **volunteers/staff** with `@sdfwa.org` Google Workspace
   accounts.
