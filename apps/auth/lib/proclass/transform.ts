@@ -79,6 +79,7 @@ export function projectMember(
   const active = getActiveMembership(memberships);
   return {
     memberId: String(contact.ContactId),
+    username: contact.Username?.trim() || null,
     email: contact.Email,
     phone: pickPhone(contact),
     firstName: contact.FirstName ?? null,

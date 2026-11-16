@@ -52,11 +52,12 @@ export default function FaqPage() {
               </Collapsible>
             </section>
 
-            <section id="email" className="flex scroll-mt-6 flex-col gap-2">
-              <h2 className="text-xl font-semibold">Forgot email</h2>
+            <section id="username-or-email" className="flex scroll-mt-6 flex-col gap-2">
+              <h2 className="text-xl font-semibold">Forgot username or email</h2>
               <p className="text-muted-foreground text-sm">
-                Use the same email address you use to log into ProClass. Check
-                your password manager to find it if you have it saved. If
+                Use the same username or email address you use to log into
+                ProClass. Check your password manager to find it if you have it
+                saved. If
                 you&apos;re still not sure, contact{" "}
                 <a
                   href="mailto:helpdesk@sdfwa.org"

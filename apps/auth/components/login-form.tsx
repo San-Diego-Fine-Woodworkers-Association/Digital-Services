@@ -14,17 +14,18 @@ const POLL_INTERVAL_MS = 2_000;
 const POLL_TIMEOUT_MS = 10 * 60 * 1000;
 
 export function LoginForm({ redirectTo }: { redirectTo: string }) {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [memberId, setMemberId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode] = useState<Mode>("credentials");
   const [pollToken, setPollToken] = useState<string | null>(null);
   const [devUrl, setDevUrl] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [forceMember, setForceMember] = useState(false);
 
   const isVolunteer =
-    !forceMember && email.trim().toLowerCase().endsWith(VOLUNTEER_DOMAIN);
+    !forceMember && identifier.trim().toLowerCase().endsWith(VOLUNTEER_DOMAIN);
 
   async function handleMemberSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,7 +36,10 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email: email.trim(), memberId: memberId.trim() }),
+        body: JSON.stringify({
+          identifier: identifier.trim(),
+          memberId: memberId.trim(),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -49,6 +53,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
       if (data.status === "magic_link_pending") {
         setPollToken(data.pollToken);
         setDevUrl(data.devMagicLinkUrl ?? null);
+        setSentTo(data.sentTo ?? null);
         setMode("magic_link_pending");
         return;
       }
@@ -79,7 +84,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
       <CardContent className="p-6">
         {mode === "magic_link_pending" && pollToken ? (
           <PendingState
-            email={email}
+            sentTo={sentTo}
             pollToken={pollToken}
             devUrl={devUrl}
             onReady={() => (window.location.href = redirectTo)}
@@ -99,7 +104,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                 </h1>
                 <h1 className="text-4xl font-bold mb-2">Sign In</h1>
                 <p className="text-muted-foreground text-balance text">
-                  Use your ProClass email and Member ID, or @sdfwa.org volunteer email.
+                  Use your ProClass username or email and Member ID, or @sdfwa.org volunteer email.
                 </p>
               </div>
 
@@ -131,18 +136,20 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
               )}
 
               <FieldGroup
-                label="Email"
-                name="email"
-                type="email"
-                value={email}
+                label="Username or Email"
+                name="identifier"
+                type="text"
+                value={identifier}
                 onChange={(value) => {
-                  setEmail(value);
+                  setIdentifier(value);
                   setForceMember(false);
                 }}
                 isRequired
                 inputProps={{
-                  placeholder: "you@example.com",
-                  autoComplete: "email",
+                  placeholder: "Your ProClass username or email",
+                  autoComplete: "username",
+                  autoCapitalize: "none",
+                  spellCheck: false,
                 }}
               />
 
@@ -199,10 +206,10 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
                       Forgot Member ID
                     </Link>
                     <Link
-                      href="/faq#email"
+                      href="/faq#username-or-email"
                       className="underline-offset-4 hover:underline"
                     >
-                      Forgot email
+                      Forgot username or email
                     </Link>
                   </div>
                 </>
@@ -216,13 +223,13 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
 }
 
 function PendingState({
-  email,
+  sentTo,
   pollToken,
   devUrl,
   onReady,
   onTimeout,
 }: {
-  email: string;
+  sentTo: string | null;
   pollToken: string;
   devUrl: string | null;
   onReady: () => void;
@@ -274,8 +281,10 @@ function PendingState({
       <div className="flex flex-col items-center gap-3 text-center">
         <h1 className="text-2xl font-bold">Check your email</h1>
         <p className="text-muted-foreground text-sm">
-          We sent a confirmation link to <strong>{email}</strong>. Click the
-          link to finish signing in — this tab will continue automatically.
+          We sent a confirmation link to{" "}
+          {sentTo ? <strong>{sentTo}</strong> : "the email on your account"}.
+          Click the link to finish signing in — this tab will continue
+          automatically.
         </p>
         <p className="text-muted-foreground text-xs">
           {status === "ready"

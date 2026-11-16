@@ -1,7 +1,7 @@
 import { APIError, createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import type { BetterAuthPlugin } from "better-auth/types";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 
 import {
   db,
@@ -21,9 +21,10 @@ import {
   hashToken,
   isExpired,
 } from "./magic-link";
+import { maskEmail } from "./mask-email";
 import { checkLimit } from "./rate-limit";
 
-const RATE_PER_EMAIL = { max: 5, windowMs: 15 * 60 * 1000 };
+const RATE_PER_ACCOUNT = { max: 5, windowMs: 15 * 60 * 1000 };
 const RATE_PER_IP = { max: 20, windowMs: 15 * 60 * 1000 };
 
 function clientIp(headers: Headers): string {
@@ -76,24 +77,31 @@ export const memberLoginPlugin = () => {
         "/sign-in/member",
         { method: "POST" },
         async (ctx) => {
-          const { email, memberId } = ctx.body as {
-            email?: string;
+          const body = ctx.body as {
+            identifier?: string;
             memberId?: string;
           };
-          if (!email || !memberId) {
+          const identifier = body.identifier?.trim().toLowerCase();
+          const memberId = body.memberId?.trim();
+          if (!identifier || !memberId) {
             throw new APIError("BAD_REQUEST", {
-              message: "Email and Member ID are required",
+              message: "Username or email and Member ID are required",
             });
           }
 
           const ip = clientIp(ctx.request?.headers ?? new Headers());
           const ipLimit = checkLimit(`ip:${ip}`, RATE_PER_IP.max, RATE_PER_IP.windowMs);
-          const emailLimit = checkLimit(
-            `email:${email.toLowerCase()}`,
-            RATE_PER_EMAIL.max,
-            RATE_PER_EMAIL.windowMs,
+          const identifierLimit = checkLimit(
+            `identifier:${identifier}`,
+            RATE_PER_ACCOUNT.max,
+            RATE_PER_ACCOUNT.windowMs,
           );
-          if (!ipLimit.ok || !emailLimit.ok) {
+          const memberLimit = checkLimit(
+            `member:${memberId}`,
+            RATE_PER_ACCOUNT.max,
+            RATE_PER_ACCOUNT.windowMs,
+          );
+          if (!ipLimit.ok || !identifierLimit.ok || !memberLimit.ok) {
             throw new APIError("TOO_MANY_REQUESTS", {
               message: "Too many sign-in attempts. Try again later.",
             });
@@ -104,14 +112,17 @@ export const memberLoginPlugin = () => {
             .from(proclassUsersTable)
             .where(
               and(
-                eq(proclassUsersTable.email, email),
                 eq(proclassUsersTable.memberId, memberId),
                 eq(proclassUsersTable.active, true),
+                or(
+                  sql`lower(${proclassUsersTable.email}) = ${identifier}`,
+                  sql`lower(${proclassUsersTable.username}) = ${identifier}`,
+                ),
               ),
             );
           if (!member) {
             throw new APIError("UNAUTHORIZED", {
-              message: "Invalid email or member ID",
+              message: "Invalid username/email or member ID",
             });
           }
 
@@ -129,7 +140,7 @@ export const memberLoginPlugin = () => {
           };
 
           const existing = (await ctx.context.internalAdapter
-            .findUserByEmail(email)
+            .findUserByEmail(member.email)
             .then((res) => res?.user)) as MemberUser | undefined;
 
           let user: MemberUser;
@@ -216,6 +227,7 @@ export const memberLoginPlugin = () => {
           return ctx.json({
             status: "magic_link_pending" as const,
             pollToken,
+            sentTo: maskEmail(member.email),
             expiresAt: expiresAt.toISOString(),
             devMagicLinkUrl: isDev ? url : undefined,
           });

@@ -48,6 +48,7 @@ export async function runProClassSync(): Promise<SyncRunResult> {
         .values(
           slice.map((m) => ({
             memberId: m.memberId,
+            username: m.username,
             email: m.email,
             phone: m.phone,
             firstName: m.firstName,
@@ -62,6 +63,7 @@ export async function runProClassSync(): Promise<SyncRunResult> {
         .onConflictDoUpdate({
           target: proclassUsersTable.memberId,
           set: {
+            username: sqlExcluded("username"),
             email: sqlExcluded("email"),
             phone: sqlExcluded("phone"),
             firstName: sqlExcluded("first_name"),

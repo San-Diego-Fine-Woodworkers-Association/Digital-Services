@@ -8,7 +8,8 @@ catch-all handler.
 
 ### `POST /api/auth/sign-in/member`
 
-Member credentials login. Returns one of three shapes:
+Member credentials login. `identifier` is matched case-insensitively against
+the member's ProClass username or email. Returns one of three shapes:
 
 ```json
 { "status": "trusted", "user": { ... }, "session": { ... } }
@@ -19,24 +20,26 @@ Trusted device; session cookie set, ready to redirect.
 {
   "status": "magic_link_pending",
   "pollToken": "<base64url>",
+  "sentTo": "j•••@example.com",
   "expiresAt": "<ISO>",
   "devMagicLinkUrl": "<url, dev only>"
 }
 ```
-Email sent (prod) or URL returned inline (dev). The original tab should poll
+Email sent (prod) or URL returned inline (dev). `sentTo` is the masked address
+the link went to. The original tab should poll
 `/api/auth/magic-link/poll` until ready. No session cookie yet.
 
 | Status | Meaning |
 | --- | --- |
 | 200 | One of the success shapes above. |
-| 400 | Missing email or memberId. |
+| 400 | Missing identifier or memberId. |
 | 401 | No matching active member. |
-| 429 | Rate-limited (5/email or 20/IP per 15 min). |
+| 429 | Rate-limited (5/identifier, 5/memberId, or 20/IP per 15 min). |
 
 Body:
 
 ```json
-{ "email": "alice@example.com", "memberId": "537906" }
+{ "identifier": "alice@example.com", "memberId": "537906" }
 ```
 
 ### `GET /api/auth/magic-link/confirm?token=<token>`

@@ -18,6 +18,7 @@ import type {
 
 const baseContact: ProClassContact = {
   ContactId: 12345,
+  Username: "ada",
   Email: "a@example.com",
   Mobile: null,
   HomePhone: null,
@@ -203,6 +204,7 @@ describe("projectMember", () => {
     ]);
     expect(projected).toEqual({
       memberId: "12345",
+      username: "ada",
       email: "a@example.com",
       phone: null,
       firstName: "Ada",
@@ -211,6 +213,12 @@ describe("projectMember", () => {
       membership: "Shop - Gold Current",
       memberSince: "2015-04-12",
     });
+  });
+
+  test("trims username and nulls out blank ones", () => {
+    expect(projectMember({ ...baseContact, Username: "  ada  " }, [])?.username).toBe("ada");
+    expect(projectMember({ ...baseContact, Username: "   " }, [])?.username).toBeNull();
+    expect(projectMember({ ...baseContact, Username: null }, [])?.username).toBeNull();
   });
 
   test("leaves membership null when no Active row exists, but still sets memberSince", () => {

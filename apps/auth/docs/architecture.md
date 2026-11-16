@@ -103,7 +103,7 @@ Trust expires 90 days after `issuedAt`. The TTL is enforced server-side on
 every sign-in, not by cookie age.
 
 A small in-memory sliding-window rate limiter caps sign-in attempts at
-5/email and 20/IP per 15 minutes. Acceptable for one Dokploy instance; if we
+5/identifier, 5/memberId, and 20/IP per 15 minutes. Acceptable for one Dokploy instance; if we
 scale out, promote to a `login_attempts` table.
 
 ## Volunteer sign-in (Google SSO)
